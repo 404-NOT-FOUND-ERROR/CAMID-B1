@@ -18,7 +18,7 @@ const isShell = m => /PrinterCase|Tank case|Box 4001/.test(shortName(m));
 const isReference = m => /film dimensions/i.test(shortName(m));
 // The supplied STEP includes this accidental auxiliary node. Keep a guard for
 // stale assets; the conversion script excludes the exact path at source.
-const isOmittedPart = m => /\/2113 - Printer - Big gear$/.test(m.userData.path || '');
+const isOmittedPart = m => m.userData.path === '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear';
 const layerIndex = m => /shutter [123]/i.test(shortName(m)) ? Number(shortName(m).match(/shutter ([123])/i)[1])-1 : -1;
 
 let renderer;
@@ -28,7 +28,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setClearColor(0,0);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.35;
+renderer.toneMappingExposure=1.1;
 viewport.append(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(34,1,0.01,100);
@@ -106,8 +106,10 @@ function description(m){
 function styledMaterial(m){
   const n=shortName(m);let color=0xb7bdb3,metalness=.2,roughness=.42;
   if(isShell(m)){color=0xc7cec0;metalness=.15;roughness=.34;}
+  else if(/RollerSupport|PrinterLock|SpringSupport/.test(n)){color=0x272e29;metalness=.15;roughness=.48;}
   else if(/gear|Crank|lever handle|Handle 2/i.test(n)){color=0xad6a39;metalness=.72;roughness=.3;}
   else if(layerIndex(m)>=0){color=[0xbc7e4b,0x8d603d,0xe0a16c][layerIndex(m)];metalness=.58;roughness=.38;}
+  else if(/ - Roller2?$/.test(n)){color=0xa7afad;metalness=.9;roughness=.24;}
   else if(/Roller|lever/i.test(n)){color=0x637268;metalness=.55;roughness=.38;}
   else if(/Film|Trap/.test(n)){color=0xc9d1c1;metalness=.05;roughness=.55;}
   if(/Glass/.test(n))return new THREE.MeshPhysicalMaterial({color:0x317d78,metalness:.55,roughness:.13,clearcoat:1,side:THREE.DoubleSide});
@@ -267,7 +269,7 @@ const questions=[
   [/back tank/i,'Tank 后部','Tank','Tank Case 说明的后部框体。']
 ];
 function thumbnail(m){
-  const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(360,280);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.3;
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(360,280);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;
   const s=new THREE.Scene();s.environment=environment;s.add(new THREE.HemisphereLight(0xffffff,0x76816b,2));
   const l=new THREE.DirectionalLight(0xffe5c9,4);l.position.set(-2,3,-4);s.add(l);
   const c=new THREE.PerspectiveCamera(32,360/280,.001,100);const copy=new THREE.Mesh(m.geometry,m.material);

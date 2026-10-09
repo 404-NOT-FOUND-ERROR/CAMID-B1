@@ -3,6 +3,8 @@
 ## 数据来源
 
 - `CAD Output/Camera V3.STEP`
+- `Assamble manual/A4 - 5.pdf` 至 `A4 - 10.pdf`
+- `Construction Manual/Technical Drawings - CAMID B1` 中的辊、齿轮、曲柄、支承及壳体工程图
 - `Rendering/exploded/9.jpg`
 - `Rendering/5.jpg`、`6.jpg`、`7.jpg`
 - `Rendering/web/6.jpeg`、`9.jpeg`、`11.jpeg`
@@ -33,8 +35,18 @@ STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子
 | --- | --- | --- |
 | 已确认 | 节点名、父子装配、零件分组 | STEP 产品结构 |
 | 工程图支持 | 外形、尺寸或局部位置 | Technical Drawings；已核对 Roller1/2、RollerGear、CubeRollerGearS、CubicRollerGearL、CubicRoller、CrankHandle、PrinterCase、ShutterCase、TankFront/Back、LeverArm/Handle |
-| 教学模型 | 曲柄、齿轮、辊筒、快门、Lever 的运动方向 | 基于节点关系的解释性动画 |
-| 待补资料 | 齿数、转向、摩擦、限位、曝光时序 | STEP 未包含 mates；需要工程图或实机记录 |
+| 观察操作 | 爆炸展开、逐步显示、快门分层 | 只改变显示位置或可见性，不表示真实运动轨迹 |
+| 待验证 | 齿数、转向、摩擦、限位、曝光时序 | STEP 未包含 mates；需要几何、工程图或实机记录继续核对 |
+
+## 本轮结构检查
+
+- 派生模型包含 48 个零件实例、53 个节点、41 个独立网格、70,886 个三角形；实例数量包含片材参考实体，不等同于最终产品 BOM。
+- Printer 保留 `RollerGear` ×2、`CubeRollerGearS` ×4、`CubicRollerGearL` ×2；只排除设计者指出的 `2113 - Printer - Big gear`。
+- `RollerSupport1.2/2.2/3/4/5/6` 均保留。装配第 4 步同时显示 `RollerSupport2.2` 与 `RollerSupport5`。
+- Shutter 保留三片不同轮廓的快门、触发件、光圈轮和镜片；说明中的弹簧、镜片支承和保护件不能仅凭当前节点清单逐一确认。
+- Tank 保留前后部构件、Lever 及其支承和手柄。`Trap` 在两个分支中各出现一次，两个实例是否都属于最终产品尚待设计确认，暂按源模型保留。
+- 工程图 `1110 - CubicRoller` 标注截面约 `6 × 6 mm`；STEP 对应零件局部几何包围盒为约 `5.5 × 5.5 × 100 mm`。两份资料存在版本差异，页面保留 STEP 几何，不能据此确认制造公差。
+- 展示材质与灯光参考 Rendering 的白灰外壳、铜橙机构和青绿镜片；这是可视化配色，不构成实际材料或表面工艺的确认。
 
 ## 当前不能直接声称的内容
 
@@ -54,4 +66,4 @@ STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子
 
 1. 从工程图逐项核对轴线、孔位、滚轮相对位置和 FilmExit 高度。
 2. 获取 SolidWorks mates 或录制曲柄、Trigger、Lever 的实机运动。
-3. 将已验证的零件节点导出为轻量 GLB，替换页面中的几何教学图。
+3. 当前已使用真实 GLB；后续把验证过的轴线、约束和动作补进交互，而非重建替代零件。

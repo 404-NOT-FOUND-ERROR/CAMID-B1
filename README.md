@@ -1,12 +1,12 @@
 # CAMID B1 · 机械成像实验室
 
-CAMID B1 是一台基于真实装配结构设计的纯机械拍立得。本项目把它转化为一个适合“懂了鸭”青少儿 AI 科普平台的全屏互动 HTML：孩子可以先识别零件，再拨动传动模型、触发快门光路，最后追踪片材如何从 Tank 走向 FilmExit。
+CAMID B1 是一台基于真实装配结构设计的纯机械拍立得。本项目把它转化为一个适合“懂了鸭”青少儿 AI 科普平台的全屏互动 HTML：孩子可以查看真实 CAD 总装配、逐步装回 Printer、观察三片快门，再用零件分类挑战检验自己的理解。
 
-这是一个零依赖、可独立运行的内容原型。页面不依赖前端框架或在线资源，适合直接作为单个互动课件打包。
+页面运行时不依赖在线资源。Three.js、应用脚本和 CAD 模型都在本地，适合独立运行和打包；修改源码时需要安装构建依赖。
 
 ## 快速运行
 
-直接双击 `index.html` 可以查看大部分内容。推荐使用本地静态服务器，以保证浏览器对本地资源的处理一致：
+直接双击 `index.html` 即可打开，GLB 已内嵌在本地脚本中。也可以使用静态服务器：
 
 ```powershell
 python -m http.server 4173
@@ -49,7 +49,7 @@ STEP 文件确认了产品节点和父子装配关系，包括：
 - `Shutter1/2/3`、`Trigger`、`Wheel^Shutter`、`Glass`
 - `Lever`、`Trap`、`Film dimensions`
 
-STEP 没有保留 SolidWorks mates、齿轮齿数、运动限位和真实摩擦接触。因此页面中的曲柄、齿轮、快门和 Lever 动画明确标注为**基于结构关系的教学运动模型**，不是经过实机验证的运动仿真。
+STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates、运动限位或摩擦接触约束。当前页面的爆炸展开、逐步显示和快门分层用于结构观察；传动方向、比例、送片路径和曝光时序尚未验证。
 
 详细的结构判断、推测和待补资料见 [`docs/structure-research.md`](docs/structure-research.md)。视觉与交互设计说明见 [`docs/design.md`](docs/design.md)。
 
@@ -57,7 +57,19 @@ STEP 没有保留 SolidWorks mates、齿轮齿数、运动限位和真实摩擦�
 
 源 STEP 中存在节点 `2113 - Printer - Big gear`，设计确认它是误隐藏的辅助零件，不属于最终产品展示。源 STEP 未被改写；派生 GLB 在转换时按完整路径排除了该节点，并在 `assets/camera-v3.manifest.json` 的 `excludedPaths` / `omittedParts` 中保留了可追溯记录。
 
-## 视觉参考 / Screenshots
+## 页面截图
+
+![Real CAD product](screenshots/10-desktop-home.png)
+
+![Real CAD assembly](screenshots/05-real-cad-assembly.png)
+
+![Printer assembly step 4](screenshots/06-printer-step-4.png)
+
+![Shutter layers](screenshots/07-shutter-layers.png)
+
+![Part detective](screenshots/08-part-detective.png)
+
+## 产品视觉参考
 
 以下图片来自本项目 `Rendering` 目录，用于记录产品和交互的视觉方向；可运行的互动页面本身位于仓库根目录的 `index.html`。
 
@@ -73,14 +85,26 @@ STEP 没有保留 SolidWorks mates、齿轮齿数、运动限位和真实摩擦�
 
 ```text
 index.html                  独立运行的互动页面
-assets/                     页面使用的本地产品渲染素材
-screenshots/                README 展示用的视觉参考图
+assets/                     GLB、内嵌模型、应用脚本与本地图片
+src/app.js                  Three.js 交互源码
+scripts/build.mjs           打包脚本
+scripts/convert_step.py     保留装配层级的 STEP 转换脚本
+screenshots/                实际页面截图与产品参考图
 docs/design.md              设计系统与交互说明
 docs/structure-research.md  CAD 结构证据边界
 ```
 
 ## 后续方向
 
-1. 根据工程图补齐齿轮齿数、轴向约束、快门时序和片材间隙。
-2. 获取 SolidWorks mates 或实机录制，用已验证的运动替换当前教学动作。
+1. 根据几何和工程图核对齿数、轴向约束和片材间隙。
+2. 获取 SolidWorks mates 或实机录制，验证传动、快门时序和片材路径。
 3. 将每个章节拆成懂了鸭平台可独立加载的内容单元。
+
+## 修改与构建
+
+```powershell
+pnpm install
+pnpm run build
+```
+
+构建脚本将 `src/app.js` 打包至 `assets/app.js`，并根据 `assets/camera-v3.glb` 生成 `assets/model-data.js`。预构建文件已包含在仓库中。
