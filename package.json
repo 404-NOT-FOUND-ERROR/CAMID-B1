@@ -1,0 +1,1 @@
+{"name":"camid-b1-real-cad-lab","version":"0.2.0","private":true,"description":"A standalone mechanical camera lesson built from the original STEP assembly","scripts":{"build":"node scripts/build.mjs"},"dependencies":{"three":"0.169.0"},"devDependencies":{"esbuild":"0.24.0"}}

@@ -28,7 +28,7 @@
 
 ### 02 · Motion lab
 
-载体是可调速的机构示意图。目标是理解输入、传递和输出：`CrankHandle → CrankShaft → Big gear / RollerGear → Roller → FilmExit`。这里的动画只表达结构上合理的教学方向。
+载体是可调速的机构示意图。目标是理解输入、传递和输出：`CrankHandle → CrankShaft → RollerGear / 方辊齿轮 → Roller → FilmExit`。`2113 - Printer - Big gear` 是源 STEP 中被确认误隐藏的辅助节点，派生教学资产不展示它。这里的动画只表达结构上合理的教学方向。
 
 ### 03 · Light path
 

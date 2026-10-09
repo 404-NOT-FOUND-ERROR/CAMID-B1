@@ -15,7 +15,7 @@ STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子
 
 ### Printer - FullAssembly
 
-包含 `Roller`、`Roller2`、`CubicRoller`、`RollerGear`、`CubeRollerGearS`、`CubicRollerGearL`、多个 Roller Support、`SpringSupportUp/Down`、`Big gear`、`CrankShaft`、`CrankHandle`、`FilmExit`、`PrinterCase` 和锁件。
+包含 `Roller`、`Roller2`、`CubicRoller`、`RollerGear`、`CubeRollerGearS`、`CubicRollerGearL`、多个 Roller Support、`SpringSupportUp/Down`、`CrankShaft`、`CrankHandle`、`FilmExit`、`PrinterCase` 和锁件。源 STEP 还带有 `2113 - Printer - Big gear`，但设计确认它是误隐藏的辅助零件；教学派生资产按完整节点路径排除，不把它当作真实产品传动件。
 
 ### Shutter
 
@@ -40,6 +40,13 @@ STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子
 - 不能从“拍立得”名称推断完整的常见相机光学链路。
 - 不能确定真实的齿轮传动比、辊筒接触顺序和快门时间。
 - 不能确定薄片在 Tank、Trap、FilmExit 之间的实机路径，除非补充工程图或拆装视频。
+
+## 展示排除的证据边界
+
+- **源文件确认**：`2113 - Printer - Big gear` 确实存在于 `Camera V3.STEP` 的 `Printer - FullAssembly` 节点下。
+- **设计确认**：用户确认该齿轮是忘记隐藏的辅助零件，不应出现在最终产品展示。
+- **派生资产处理**：源 STEP 保持原样；`convert_step.py` 仅在生成 GLB 时按完整路径排除，并把路径、名称和原因写入 manifest。
+- **未做的推断**：没有据此删除其他 `RollerGear`、`CubeRollerGearS` 或 `CubicRollerGearL`，这些节点仍由 STEP 和装配资料支持。
 
 ## 下一步验证
 
