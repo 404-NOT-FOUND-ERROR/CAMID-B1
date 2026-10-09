@@ -9,6 +9,8 @@
 
 STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子装配关系和实体几何，但没有提供 SolidWorks mates 或可直接播放的运动约束。
 
+装配说明交叉核对结果：A4-5/A4-6 的 Printer Manual 明确列出 2 根方辊、4 个小方辊齿轮、2 个大方辊齿轮、2 根圆辊、6 个支承件、2 个出片口件、锁件和曲柄；A4-8/A4-9 的 Shutter Manual 明确列出 Aperture wheel、Lens、Trigger、Shutter 1/2/3 和弹簧；A4-7 的 Tank Case Manual 列出前后壳、Lever、Lever handle 和 Trap。页面按这些资料组织装配教学。
+
 ## 已确认的装配层级
 
 根装配 `Camera V3` 包含 `Tank 6000`、`Shutter`、`Printer - FullAssembly`、`Tank case 7003`、`Film` 和压力按钮节点。
@@ -30,7 +32,7 @@ STEP 为 SolidWorks 2025 导出的 AP214 文件，保留了产品节点、父子
 | 等级 | 页面表达 | 依据 |
 | --- | --- | --- |
 | 已确认 | 节点名、父子装配、零件分组 | STEP 产品结构 |
-| 工程图支持 | 外形、尺寸或局部位置 | Technical Drawings，需逐图核对 |
+| 工程图支持 | 外形、尺寸或局部位置 | Technical Drawings；已核对 Roller1/2、RollerGear、CubeRollerGearS、CubicRollerGearL、CubicRoller、CrankHandle、PrinterCase、ShutterCase、TankFront/Back、LeverArm/Handle |
 | 教学模型 | 曲柄、齿轮、辊筒、快门、Lever 的运动方向 | 基于节点关系的解释性动画 |
 | 待补资料 | 齿数、转向、摩擦、限位、曝光时序 | STEP 未包含 mates；需要工程图或实机记录 |
 
