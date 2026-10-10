@@ -4,6 +4,22 @@ CAMID B1 是一台基于真实装配结构设计的纯机械拍立得。本项�
 
 页面运行时不依赖在线资源。Three.js、应用脚本和 CAD 模型都在本地，适合独立运行和打包；修改源码时需要安装构建依赖。
 
+## Blender 材质与棚灯
+
+产品视觉使用真实 CAD 网格在 Blender 3.1 中生成。`scripts/style_blender.py` 会导入 `assets/camera-v3.glb`，按零件路径分配白色壳体、石墨支承、铜色控制件、钢制辊筒和镀膜玻璃材质，清理 CAD 网格法线，并用 Cycles 生成可编辑工程、棚拍证明图和本地 HDR 反射环境。铜色镜头环来自 `Box 4001` 的真实表面材质分区，没有新增虚构零件。
+
+生成 Blender 资产：
+
+```powershell
+& 'D:\Program Files (x86)\Blender Foundation\Blender 3.1\blender.exe' --background --factory-startup --python scripts/style_blender.py -- --output-dir blender --samples 96
+```
+
+网页使用 `assets/camera-v3-studio.glb` 和 `assets/camid-studio.hdr`。Blender 的 Cycles 灯光用于产品证明图；网页用同一 HDR 反射环境和实时阴影保持可旋转、可拆解交互。可编辑工程保存在 [`blender/CAMID-B1-studio.blend`](blender/CAMID-B1-studio.blend)，样张为 [`blender/camid-b1-studio.png`](blender/camid-b1-studio.png)。
+
+![Blender Cycles product proof](blender/camid-b1-studio.png)
+
+更新网页资产后运行 `node scripts/verify-studio.mjs`，核对 Blender 处理前后的实例路径、层级变换和几何包围盒。原始派生 GLB 保留作为结构基准；Blender 清理重合顶点及退化三角形，未增加产品构件。Cycles 的体积吸收与微表面节点没有完整的 glTF 等价表达，网页使用导出的 PBR 材质及实时镀膜参数近似。
+
 ## 快速运行
 
 直接双击 `index.html` 即可打开，GLB 已内嵌在本地脚本中。也可以使用静态服务器：

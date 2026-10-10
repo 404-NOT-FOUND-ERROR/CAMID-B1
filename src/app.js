@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -28,7 +29,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setClearColor(0,0);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.1;
+renderer.toneMappingExposure=.92;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.VSMShadowMap;
 viewport.append(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(34,1,0.01,100);
@@ -38,24 +40,26 @@ controls.enablePan=true;controls.minDistance=.25;controls.maxDistance=15;
 controls.autoRotate=!reducedMotion;controls.autoRotateSpeed=.35;
 controls.addEventListener('start',()=>{controls.autoRotate=false;syncRotate();$('#tooltip').hidden=true;});
 const pmrem=new THREE.PMREMGenerator(renderer);
-const room=new RoomEnvironment();
-const environment=pmrem.fromScene(room,.06).texture;
-scene.environment=environment;room.dispose();pmrem.dispose();
-scene.add(new THREE.HemisphereLight(0xe7f5e3,0x293327,2));
+const hdrBytes=Uint8Array.from(atob(window.CAMID_HDR),c=>c.charCodeAt(0));
+const hdrData=new RGBELoader().parse(hdrBytes.buffer);
+const hdr=new THREE.DataTexture(hdrData.data,hdrData.width,hdrData.height,THREE.RGBAFormat,hdrData.type);
+hdr.mapping=THREE.EquirectangularReflectionMapping;hdr.colorSpace=THREE.LinearSRGBColorSpace;hdr.needsUpdate=true;
+const environment=pmrem.fromEquirectangular(hdr).texture;
+scene.environment=environment;scene.environmentIntensity=1.1;hdr.dispose();pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xf0f1f3,0x313139,.35));
 function light(color,intensity,pos){const l=new THREE.DirectionalLight(color,intensity);l.position.copy(pos);scene.add(l);return l;}
-light(0xffe6c4,3.8,v3(-3,5,-4));
-light(0xb0dacd,3.2,v3(4,2,3));
-light(0xe3f4eb,1.7,v3(0,1,-4));
+const keyLight=light(0xfff4e7,2.2,v3(-3,4,-3));
+keyLight.castShadow=true;keyLight.shadow.mapSize.set(1024,1024);
+Object.assign(keyLight.shadow.camera,{left:-2.3,right:2.3,top:2.3,bottom:-2.3,near:.1,far:14});
+keyLight.shadow.bias=-.00015;keyLight.shadow.normalBias=.002;keyLight.shadow.radius=4;keyLight.shadow.blurSamples=16;
+light(0xd9e6ff,.45,v3(4,2,-1));
+light(0xffffff,2.5,v3(1,3,4));
 const holder=new THREE.Group();holder.rotation.x=-Math.PI/2;holder.scale.setScalar(10);scene.add(holder);
 let model=null;
 
-// The floor and light grid are studio props. Every product mesh comes from STEP.
-const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=256;
-const ctx=shadowCanvas.getContext('2d');const grad=ctx.createRadialGradient(128,128,0,128,128,128);
-grad.addColorStop(0,'rgba(0,0,0,.6)');grad.addColorStop(.5,'rgba(0,0,0,.25)');grad.addColorStop(1,'rgba(0,0,0,0)');
-ctx.fillStyle=grad;ctx.fillRect(0,0,256,256);
-const shadow=new THREE.Mesh(new THREE.PlaneGeometry(2.7,2.2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shadowCanvas),transparent:true,depthWrite:false}));
-shadow.rotation.x=-Math.PI/2;shadow.position.y=-.91;scene.add(shadow);
+// The shadow catcher and light grid are studio props. Product meshes come from STEP.
+const shadow=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.3}));
+shadow.rotation.x=-Math.PI/2;shadow.position.y=-.92;shadow.receiveShadow=true;scene.add(shadow);
 const grid=new THREE.GridHelper(4,24,0x476250,0x304739);grid.position.y=-.72;grid.material.transparent=true;grid.material.opacity=.18;grid.visible=false;scene.add(grid);
 
 const buildSteps=[
@@ -103,17 +107,27 @@ function description(m){
   if(/Pressure button/.test(n))return ['压力按钮','根装配中的独立零件节点。用途与操作顺序还需要说明或实机资料。'];
   return [n,'源 STEP 中的真实零件。其名称、几何、静态装配位置已保留；具体运动职责仍需补充资料。'];
 }
-function styledMaterial(m){
-  const n=shortName(m);let color=0xb7bdb3,metalness=.2,roughness=.42;
-  if(isShell(m)){color=0xc7cec0;metalness=.15;roughness=.34;}
-  else if(/RollerSupport|PrinterLock|SpringSupport/.test(n)){color=0x272e29;metalness=.15;roughness=.48;}
-  else if(/gear|Crank|lever handle|Handle 2/i.test(n)){color=0xad6a39;metalness=.72;roughness=.3;}
-  else if(layerIndex(m)>=0){color=[0xbc7e4b,0x8d603d,0xe0a16c][layerIndex(m)];metalness=.58;roughness=.38;}
-  else if(/ - Roller2?$/.test(n)){color=0xa7afad;metalness=.9;roughness=.24;}
-  else if(/Roller|lever/i.test(n)){color=0x637268;metalness=.55;roughness=.38;}
-  else if(/Film|Trap/.test(n)){color=0xc9d1c1;metalness=.05;roughness=.55;}
-  if(/Glass/.test(n))return new THREE.MeshPhysicalMaterial({color:0x317d78,metalness:.55,roughness:.13,clearcoat:1,side:THREE.DoubleSide});
-  return new THREE.MeshPhysicalMaterial({color,metalness,roughness,clearcoat:.2,side:THREE.DoubleSide});
+const materialsOf=m=>Array.isArray(m.material)?m.material:[m.material];
+function preserveStudioMaterial(material){
+  const result=material.clone();result.side=THREE.FrontSide;result.envMapIntensity=1;
+  if(result.name==='CAMID Optical Glass'){
+    result.transmission=.18;result.thickness=.035;result.ior=1.46;
+    result.attenuationColor=new THREE.Color(0x466c64);result.attenuationDistance=.16;
+    result.iridescence=.32;result.iridescenceIOR=1.3;result.iridescenceThicknessRange=[180,330];
+  }
+  return result;
+}
+
+function consolidatePartPrimitives(root){
+  const parts=[];root.traverse(o=>{if(o.userData.path&&o.isGroup&&o.children.length&&o.children.every(c=>c.isMesh))parts.push(o);});
+  // glTF splits a multimat CAD part into primitives. Merge these into one selectable part.
+  parts.forEach(part=>{
+    const geometry=mergeGeometries(part.children.map(c=>{c.updateMatrix();return c.geometry.clone().applyMatrix4(c.matrix);}),true);
+    if(!geometry)throw new Error('Cannot consolidate CAD material primitives: '+part.name);
+    const mesh=new THREE.Mesh(geometry,part.children.map(c=>c.material));mesh.name=part.name;mesh.userData={...part.userData};
+    mesh.position.copy(part.position);mesh.quaternion.copy(part.quaternion);mesh.scale.copy(part.scale);
+    part.parent.add(mesh);part.removeFromParent();
+  });
 }
 
 function fit(direction,margin=1.22){
@@ -136,9 +150,11 @@ function localOffset(m,rawOffset){
 }
 function setAppearance(m){
   const highlight=mode==='assembly'&&selected===m;
-  m.material.emissive.setHex(highlight?0xbc662b:0x000000);m.material.emissiveIntensity=highlight?.32:0;
-  m.material.opacity=1;m.material.transparent=false;m.material.depthWrite=true;
-  if(mode==='build' && buildStep===9 && isShell(m)){m.material.opacity=.28;m.material.transparent=true;m.material.depthWrite=false;}
+  materialsOf(m).forEach(material=>{
+    material.emissive.setHex(highlight?0xbc662b:0x000000);material.emissiveIntensity=highlight?.32:0;
+    material.opacity=1;material.transparent=false;material.depthWrite=true;
+    if(mode==='build' && buildStep===9 && isShell(m)){material.opacity=.28;material.transparent=true;material.depthWrite=false;}
+  });
 }
 function updateModel(){
   if(!ready)return;
@@ -269,9 +285,10 @@ const questions=[
   [/back tank/i,'Tank 后部','Tank','Tank Case 说明的后部框体。']
 ];
 function thumbnail(m){
-  const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(360,280);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;
-  const s=new THREE.Scene();s.environment=environment;s.add(new THREE.HemisphereLight(0xffffff,0x76816b,2));
-  const l=new THREE.DirectionalLight(0xffe5c9,4);l.position.set(-2,3,-4);s.add(l);
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(360,280);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=.92;
+  const s=new THREE.Scene();s.environment=environment;s.environmentIntensity=1.1;s.add(new THREE.HemisphereLight(0xffffff,0x313139,.35));
+  const l=new THREE.DirectionalLight(0xfff4e7,2.2);l.position.set(-2,3,-4);s.add(l);
+  const rim=new THREE.DirectionalLight(0xffffff,2.5);rim.position.set(1,3,4);s.add(rim);
   const c=new THREE.PerspectiveCamera(32,360/280,.001,100);const copy=new THREE.Mesh(m.geometry,m.material);
   m.matrixWorld.decompose(copy.position,copy.quaternion,copy.scale);s.add(copy);
   const box=new THREE.Box3().setFromObject(copy),center=box.getCenter(v3(0,0,0));copy.position.sub(center);
@@ -313,12 +330,13 @@ function fatal(e){console.error(e);$('#loading').hidden=false;$('#loading').text
 try{
   const bytes=Uint8Array.from(atob(window.CAMID_GLTF),c=>c.charCodeAt(0));
   new GLTFLoader().parse(bytes.buffer,'',gltf=>{
-    model=gltf.scene;holder.add(model);model.updateMatrixWorld(true);
+    model=gltf.scene;consolidatePartPrimitives(model);holder.add(model);model.updateMatrixWorld(true);
     const omitted=[];
     model.traverse(m=>{if(!m.isMesh)return;if(isOmittedPart(m)){omitted.push(m);return;}meshes.push(m);m.userData.basePosition=m.position.clone();m.userData.parentRawMatrix=m.parent.matrixWorld.clone();
       // Holder has a studio transform; remove it before computing STEP-space offsets.
       m.userData.parentRawMatrix.premultiply(holder.matrixWorld.clone().invert());
-      m.material=styledMaterial(m);
+      m.material=Array.isArray(m.material)?m.material.map(preserveStudioMaterial):preserveStudioMaterial(m.material);
+      m.castShadow=!/Glass/.test(shortName(m));m.receiveShadow=true;
     });
     omitted.forEach(m=>m.removeFromParent());
     model.position.set(-.005,-.025,-.002);model.updateMatrixWorld(true);
