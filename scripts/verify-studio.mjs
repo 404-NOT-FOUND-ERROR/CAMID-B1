@@ -15,7 +15,7 @@ function instances(gltf){
       new Quaternion().fromArray(n.rotation||[0,0,0,1]),
       new Vector3().fromArray(n.scale||[1,1,1]));
     const world=parent.clone().multiply(local);
-    if(n.mesh!==undefined){
+    if(n.mesh!==undefined&&!n.extras?.decorative){
       assert(n.extras?.path);assert(n.extras?.instanceLabel);
       const key=n.extras.path+'|'+n.extras.instanceLabel;
       assert(!rows.has(key));
@@ -34,7 +34,8 @@ function instances(gltf){
   return rows;
 }
 const cad=parse(await readFile('assets/camera-v3.glb'));
-const studio=parse(await readFile('assets/camera-v3-studio.glb'));
+const studioBytes=await readFile('assets/camera-v3-studio.glb');
+const studio=parse(studioBytes);
 const before=instances(cad),after=instances(studio);
 assert.equal(after.size,48);assert.equal(before.size,after.size);
 let maxTransformError=0,maxBoundsError=0;
@@ -47,7 +48,34 @@ for(const [key,a] of before){
 }
 assert(maxTransformError<.00002,`Transforms changed: ${maxTransformError}`);
 assert(maxBoundsError<.000002,`Bounds changed: ${maxBoundsError}`);
-assert(studio.materials.some(m=>m.name==='CAMID Satin Copper'));
-assert(studio.materials.some(m=>m.name==='CAMID Optical Glass'&&m.extensions.KHR_materials_transmission));
+assert(studio.materials.some(m=>m.name==='CAMID Brushed Gold Copper'));
+assert(studio.materials.some(m=>m.name==='CAMID Black Satin Shell'));
+assert(studio.materials.some(m=>m.name==='CAMID Emerald Coated Glass'&&m.extensions.KHR_materials_transmission));
+assert.equal(studio.nodes.filter(n=>n.extras?.decorative&&n.extras.logo==='CAMID').length,1);
+assert(studio.images.some(image=>image.name==='camid-wordmark'&&image.bufferView!==undefined));
 assert(studio.meshes.some(m=>m.name.startsWith('Box 4001')&&m.primitives.length===2));
-console.log(JSON.stringify({parts:after.size,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,copperCollar:true,glassTransmission:true},null,2));
+const binaryOffset=20+studioBytes.readUInt32LE(12)+8;
+function values(index){
+  const a=studio.accessors[index],view=studio.bufferViews[a.bufferView];
+  const count=a.count*(a.type==='VEC3'?3:1);
+  const ArrayType=a.componentType===5126?Float32Array:a.componentType===5123?Uint16Array:Uint32Array;
+  return new ArrayType(studioBytes.buffer,studioBytes.byteOffset+binaryOffset+view.byteOffset+(a.byteOffset||0),count);
+}
+let planarCorners=0,maxPlanarNormalError=0;
+for(const n of studio.nodes){
+  if(n.mesh===undefined||!/PrinterCase|Box 4001|Tank case/.test(n.name))continue;
+  for(const primitive of studio.meshes[n.mesh].primitives){
+    const positions=values(primitive.attributes.POSITION),normals=values(primitive.attributes.NORMAL),indices=values(primitive.indices);
+    for(let i=0;i<indices.length;i+=3){
+      const ids=[indices[i],indices[i+1],indices[i+2]];
+      const p=ids.map(id=>new Vector3().fromArray(positions,id*3));
+      const faceNormal=p[1].clone().sub(p[0]).cross(p[2].clone().sub(p[0]));
+      // Large CAD triangles cover the shell panels; tiny fillet facets are smooth.
+      if(faceNormal.length()/2<.0003)continue;
+      faceNormal.normalize();
+      for(const id of ids){maxPlanarNormalError=Math.max(maxPlanarNormalError,1-faceNormal.dot(new Vector3().fromArray(normals,id*3).normalize()));planarCorners++;}
+    }
+  }
+}
+assert(planarCorners>300);assert(maxPlanarNormalError<.000001,'Planar shell corners inherit curved normals');
+console.log(JSON.stringify({parts:after.size,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,copperCollar:true,glassTransmission:true,embeddedWordmark:true,planarCorners,maxPlanarNormalError},null,2));

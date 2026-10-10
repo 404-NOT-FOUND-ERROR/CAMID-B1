@@ -4,3 +4,6 @@ __pycache__/
 *.py[cod]
 .DS_Store
 *.blend1
+/blender/camera-v3-studio.glb
+/blender/camid-studio.hdr
+/blender/studio-backdrop.jpg

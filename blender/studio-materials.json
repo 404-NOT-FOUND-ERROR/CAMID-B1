@@ -1,0 +1,311 @@
+{
+  "blender": "3.1.0",
+  "parts": [
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/back tank 6005_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:1",
+      "finish": "CAMID Black Satin Shell"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/Front tank 6004_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:2",
+      "finish": "CAMID Black Satin Shell"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/lever 6006_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:3",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/lever support 6007_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:4",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/lever handle 6008_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:5",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/Trap 6001_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:6",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/film dimensions_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:7",
+      "finish": "CAMID Film Black"
+    },
+    {
+      "path": "/Camera V3/Tank 6000_D\u00e9faut/Handle 2^Tank 6000_D\u00e9faut",
+      "instanceLabel": "0:1:1:2:8",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Box 4001_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:1",
+      "finish": "CAMID Black Satin Shell"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Shutter 1 4003_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:2",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/shutter 2 4004_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:3",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Shutter 3 4005_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:4",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Trigger 4002_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:5",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Wheel^Shutter_D\u00e9faut",
+      "instanceLabel": "0:1:1:11:6",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Shutter_D\u00e9faut/Glass",
+      "instanceLabel": "0:1:1:11:7",
+      "finish": "CAMID Emerald Coated Glass"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1111 - Printer - Roller2",
+      "instanceLabel": "0:1:1:19:1",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1111 - Printer - Roller",
+      "instanceLabel": "0:1:1:19:2",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1112 - Printer - FilmExit",
+      "instanceLabel": "0:1:1:19:3",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1113 - Printer - PrinterLock",
+      "instanceLabel": "0:1:1:19:4",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1114 - Printer - RollerSupport1.2",
+      "instanceLabel": "0:1:1:19:5",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1115 - Printer - RollerSupport2.2",
+      "instanceLabel": "0:1:1:19:6",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1116 - Printer - RollerSupport3",
+      "instanceLabel": "0:1:1:19:7",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1117 - Printer - RollerSupport4",
+      "instanceLabel": "0:1:1:19:8",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1118 - Printer - RollerSupport5",
+      "instanceLabel": "0:1:1:19:9",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1119 - Printer - RollerSupport6",
+      "instanceLabel": "0:1:1:19:10",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1120 - Printer - CubicRoller",
+      "instanceLabel": "0:1:1:19:11",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1120 - Printer - CubicRoller",
+      "instanceLabel": "0:1:1:19:12",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1121 - Printer - RollerGear",
+      "instanceLabel": "0:1:1:19:13",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
+      "instanceLabel": "0:1:1:19:14",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1121 - Printer - RollerGear",
+      "instanceLabel": "0:1:1:19:15",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
+      "instanceLabel": "0:1:1:19:16",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
+      "instanceLabel": "0:1:1:19:17",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
+      "instanceLabel": "0:1:1:19:18",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1123 - Printer - SpringSupportUp",
+      "instanceLabel": "0:1:1:19:19",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1124 - Printer - SpringSupportDown",
+      "instanceLabel": "0:1:1:19:20",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1127 - Printer - CubicRollerGearL",
+      "instanceLabel": "0:1:1:19:21",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1127 - Printer - CubicRollerGearL",
+      "instanceLabel": "0:1:1:19:22",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1112 - Printer - FilmExit2",
+      "instanceLabel": "0:1:1:19:23",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/4000 - Case - PrinterCase",
+      "instanceLabel": "0:1:1:19:24",
+      "finish": "CAMID Black Satin Shell"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/2112 - Printer - CrankShaft",
+      "instanceLabel": "0:1:1:19:26",
+      "finish": "CAMID Dark Polished Steel"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1125 - Printer - CrankHandle",
+      "instanceLabel": "0:1:1:19:27",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/1131 - Printer - ClipPin",
+      "instanceLabel": "0:1:1:19:28",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Printer - FullAssembly/finger^Printer - FullAssembly_D\u00e9faut",
+      "instanceLabel": "0:1:1:19:29",
+      "finish": "CAMID Graphite Support"
+    },
+    {
+      "path": "/Camera V3/Tank case 7003^Camera V3_D\u00e9faut/Tank case^Tank case 7003_Camera V3_D\u00e9faut",
+      "instanceLabel": "0:1:1:43:1",
+      "finish": "CAMID Black Satin Shell"
+    },
+    {
+      "path": "/Camera V3/Tank case 7003^Camera V3_D\u00e9faut/Trap 6001_D\u00e9faut",
+      "instanceLabel": "0:1:1:43:2",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Film_D\u00e9faut",
+      "instanceLabel": "0:1:1:1:5",
+      "finish": "CAMID Film Black"
+    },
+    {
+      "path": "/Camera V3/Pressure button 1_\u9ed8\u8ba4",
+      "instanceLabel": "0:1:1:1:6",
+      "finish": "CAMID Brushed Gold Copper"
+    },
+    {
+      "path": "/Camera V3/Pressure button 2_\u9ed8\u8ba4",
+      "instanceLabel": "0:1:1:1:7",
+      "finish": "CAMID Brushed Gold Copper"
+    }
+  ],
+  "lights": [
+    [
+      "Key - neutral softbox",
+      [
+        -0.27,
+        0.32,
+        0.34
+      ],
+      6,
+      0.22,
+      0.36,
+      [
+        1,
+        0.94,
+        0.86
+      ]
+    ],
+    [
+      "Fill - cool strip",
+      [
+        0.3,
+        0.2,
+        0.14
+      ],
+      2,
+      0.09,
+      0.28,
+      [
+        0.7,
+        0.83,
+        1
+      ]
+    ],
+    [
+      "Rim - red strip",
+      [
+        0.04,
+        -0.19,
+        0.29
+      ],
+      9,
+      0.3,
+      0.12,
+      [
+        1,
+        0.025,
+        0.008
+      ]
+    ],
+    [
+      "Lens reflection",
+      [
+        0.16,
+        0.36,
+        0.035
+      ],
+      1.2,
+      0.065,
+      0.1,
+      [
+        0.8,
+        1,
+        0.92
+      ]
+    ]
+  ]
+}

@@ -2,7 +2,8 @@
 
 Usage: blender --background --factory-startup --python scripts/style_blender.py
        -- --output-dir <directory> [--samples 64]
-The source GLB retains instance hierarchy and STEP metadata. No parts are added.
+The source GLB retains instance hierarchy, face normals and STEP metadata.
+The CAMID surface mark is presentation geometry, not a CAD part.
 """
 import argparse
 import json
@@ -36,15 +37,16 @@ def material(name, color, metal, roughness, coat=0):
     b.inputs['Roughness'].default_value = roughness
     b.inputs['Clearcoat'].default_value = coat
     b.inputs['Clearcoat Roughness'].default_value = .12
-    m['reference'] = 'Rendering/6.jpg; Rendering/web/6.jpeg; Rendering/exploded/9.jpg'
+    m['reference'] = 'Rendering/4x black gold color test; Rendering/2x red studio; Rendering/exploded/9.jpg'
     return m
 
-white = material('CAMID Satin Ceramic White', (.56,.57,.58), 0, .34, .12)
-graphite = material('CAMID Graphite Support', (.023,.025,.028), .22, .34)
-copper = material('CAMID Satin Copper', (.64,.19,.075), .97, .25, .08)
-steel = material('CAMID Polished Steel', (.57,.6,.63), .98, .22)
-film = material('CAMID Film Black', (.01,.013,.014), 0, .45)
-glass = material('CAMID Optical Glass', (.025,.08,.06), 0, .035, .7)
+white = material('CAMID Black Satin Shell', (.009,.011,.014), .0, .39, .08)
+graphite = material('CAMID Graphite Support', (.002,.003,.006), .32, .31, .12)
+copper = material('CAMID Brushed Gold Copper', (.62,.235,.060), .88, .27, .12)
+steel = material('CAMID Dark Polished Steel', (.08,.105,.12), .96, .2, .12)
+film = material('CAMID Film Black', (.003,.004,.005), 0, .48)
+glass = material('CAMID Emerald Coated Glass', (.012,.05,.035), .05, .035, .76)
+logo_gold = material('CAMID Logo Silver', (.60,.64,.66), .2, .38)
 gb = glass.node_tree.nodes.get('Principled BSDF')
 gb.inputs['Transmission'].default_value = .7
 gb.inputs['IOR'].default_value = 1.46
@@ -55,7 +57,7 @@ absorb.inputs['Density'].default_value = 80
 glass.node_tree.links.new(absorb.outputs['Volume'], glass.node_tree.nodes.get('Material Output').inputs['Volume'])
 
 # Microfinish uses object-space scale in Blender; it does not alter CAD geometry.
-for m, scale, strength, distance in [(white, 18000, .14, .000012), (copper, 26000, .08, .000003)]:
+for m, scale, strength, distance in [(white, 52000, .028, .000002), (copper, 34000, .045, .000002)]:
     nodes, links = m.node_tree.nodes, m.node_tree.links
     tex = nodes.new('ShaderNodeTexNoise'); tex.inputs['Scale'].default_value = scale
     coord = nodes.new('ShaderNodeTexCoord'); links.new(coord.outputs['Object'], tex.inputs['Vector'])
@@ -87,19 +89,55 @@ for o in mesh_objects:
             if max(v.z for v in verts) > .077 and r < .032:
                 p.material_index = 1
     o['finish'] = m.name
-    if o.data.name not in seen:
-        seen.add(o.data.name)
-        bpy.context.view_layer.objects.active = o; o.select_set(True)
-        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.mesh.remove_doubles(threshold=0.0000005)
-        bpy.ops.object.mode_set(mode='OBJECT')
-        o.data.use_auto_smooth = True; o.data.auto_smooth_angle = math.radians(32)
-        for p in o.data.polygons: p.use_smooth = True
-        o.select_set(False)
+    # STEP faces have separate vertices and correct custom split normals.
+    # Welding the faces makes planar panels inherit curved corner normals.
+    assert o.data.has_custom_normals, o.name
     authored.append({'path': o['path'], 'instanceLabel': o.get('instanceLabel'), 'finish': m.name})
 
-# Export only CAD objects before applying the render-stage orientation.
+# Add the real product mark as a surface decal on the existing shutter box.
+# It is decorative metadata, so the web viewer renders it without counting it as a new CAD part.
+box_obj = next(o for o in mesh_objects if 'box 4001' in o.get('path','').lower())
+bpy.ops.object.text_add(location=(.04040, .027, .043))
+logo = bpy.context.object; logo.name='CAMID logo decal'; logo.data.body='CAMID'; logo.data.align_x='CENTER'; logo.data.align_y='CENTER'
+logo.rotation_euler = Matrix(((0,-.069756,.997564),(1,0,0),(0,.997564,.069756))).to_euler()
+logo.data.size=.006; logo.data.extrude=0; logo.data.bevel_depth=0
+logo.data.materials.append(logo_gold); logo['decorative']=True; logo['logo']='CAMID'
+logo.parent=box_obj; logo.matrix_parent_inverse=box_obj.matrix_world.inverted()
+bpy.context.view_layer.objects.active=logo; logo.select_set(True); bpy.ops.object.convert(target='MESH'); logo.select_set(False)
+bpy.context.view_layer.update()
+logo_matrix = logo.matrix_world.copy()
+# Rasterize the reference wordmark locally and embed its transparent image in GLB.
+main_scene = bpy.context.scene
+mark_scene = bpy.data.scenes.new('CAMID decal artwork')
+mark = bpy.data.objects.new('CAMID artwork', logo.data.copy());mark_scene.collection.objects.link(mark)
+ink = bpy.data.materials.new('CAMID decal ink');ink.use_nodes=True
+ink.node_tree.nodes.clear();em=ink.node_tree.nodes.new('ShaderNodeEmission');em.inputs['Color'].default_value=(.78,.82,.84,1)
+output=ink.node_tree.nodes.new('ShaderNodeOutputMaterial');ink.node_tree.links.new(em.outputs[0],output.inputs['Surface'])
+mark.data.materials.clear();mark.data.materials.append(ink)
+mark_cam_data=bpy.data.cameras.new('Wordmark artwork camera');mark_cam=bpy.data.objects.new('Wordmark artwork camera',mark_cam_data)
+mark_scene.collection.objects.link(mark_cam);mark_cam.location=(0,0,1);mark_cam_data.type='ORTHO';mark_cam_data.ortho_scale=.027
+mark_scene.camera=mark_cam;mark_scene.render.engine='BLENDER_EEVEE';mark_scene.render.film_transparent=True
+mark_scene.render.resolution_x=1024;mark_scene.render.resolution_y=256;mark_scene.render.resolution_percentage=100
+mark_scene.view_settings.view_transform='Standard';mark_scene.view_settings.look='None'
+mark_scene.render.image_settings.file_format='PNG';mark_scene.render.image_settings.color_mode='RGBA'
+mark_scene.render.filepath=str(out/'camid-wordmark.png');bpy.ops.render.render(write_still=True,scene=mark_scene.name)
+bpy.context.window.scene=main_scene
+bpy.data.objects.remove(logo,do_unlink=True)
+decal_mesh=bpy.data.meshes.new('CAMID surface UV');decal_mesh.from_pydata([(-.0135,-.003375,0),(.0135,-.003375,0),(.0135,.003375,0),(-.0135,.003375,0)],[],[(0,1,2,3)])
+uv=decal_mesh.uv_layers.new(name='CAMID UV')
+for loop,coord in zip(uv.data,[(0,0),(1,0),(1,1),(0,1)]):loop.uv=coord
+logo=bpy.data.objects.new('CAMID logo decal',decal_mesh);main_scene.collection.objects.link(logo)
+logo.parent=box_obj;logo.matrix_world=logo_matrix;logo['decorative']=True;logo['logo']='CAMID'
+decal_mat=bpy.data.materials.new('CAMID printed wordmark');decal_mat.use_nodes=True;decal_mat.blend_method='BLEND';decal_mat.use_screen_refraction=False
+tex=decal_mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=bpy.data.images.load(str(out/'camid-wordmark.png'));tex.image.pack()
+bsdf=decal_mat.node_tree.nodes.get('Principled BSDF');bsdf.inputs['Roughness'].default_value=.45
+decal_mat.node_tree.links.new(tex.outputs['Color'],bsdf.inputs['Base Color']);decal_mat.node_tree.links.new(tex.outputs['Alpha'],bsdf.inputs['Alpha'])
+decal_mesh.materials.append(decal_mat)
+bpy.data.scenes.remove(mark_scene)
+
+# Export only CAD objects plus the marked logo before applying the render-stage orientation.
 for o in product: o.select_set(True)
+logo.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(out/'camera-v3-studio.glb'), export_format='GLB', use_selection=True,
                          export_extras=True, export_yup=True, export_materials='EXPORT', export_normals=True)
 bpy.ops.object.select_all(action='DESELECT')
@@ -116,24 +154,24 @@ def move_to_studio(o):
     for coll in list(o.users_collection): coll.objects.unlink(o)
     studio.objects.link(o)
 
-world = bpy.data.worlds.new('Neutral grey studio'); bpy.context.scene.world = world; world.use_nodes = True
-world.node_tree.nodes['Background'].inputs['Color'].default_value = (.13,.14,.16,1)
-world.node_tree.nodes['Background'].inputs['Strength'].default_value = .24
-floor_mat = material('Studio floor', (.055,.06,.067), 0, .57)
+world = bpy.data.worlds.new('Black gold studio'); bpy.context.scene.world = world; world.use_nodes = True
+world.node_tree.nodes['Background'].inputs['Color'].default_value = (.006,.003,.004,1)
+world.node_tree.nodes['Background'].inputs['Strength'].default_value = .16
+floor_mat = material('Studio floor', (.018,.006,.006), 0, .5)
 bpy.ops.mesh.primitive_plane_add(size=200, location=(0,0,-.092))
 floor = bpy.context.object; floor.name = 'Studio floor'; floor.data.materials.append(floor_mat); move_to_studio(floor)
 
 lights = [
-    ('Key - vertical softbox', (-.27,.32,.34), 8, .22, .36, (1,.955,.9)),
-    ('Fill - tall strip', (.3,.2,.14), 2.8, .09, .28, (.86,.92,1)),
-    ('Rim - overhead strip', (.04,-.19,.29), 10, .3, .12, (1,1,1)),
-    ('Lens reflection', (.16,.36,.035), .9, .065, .10, (1,1,1)),
+    ('Key - neutral softbox', (-.27,.32,.34), 6, .22, .36, (1,.94,.86)),
+    ('Fill - cool strip', (.3,.2,.14), 2, .09, .28, (.70,.83,1)),
+    ('Rim - red strip', (.04,-.19,.29), 9, .3, .12, (1,.025,.008)),
+    ('Lens reflection', (.16,.36,.035), 1.2, .065, .10, (.8,1,.92)),
 ]
 for name, pos, power, sx, sy, color in lights:
     data = bpy.data.lights.new(name, 'AREA'); data.energy=power; data.shape='RECTANGLE'; data.size=sx; data.size_y=sy; data.color=color
     obj = bpy.data.objects.new(name, data); studio.objects.link(obj); obj.location=pos; aim(obj,target)
 data = bpy.data.cameras.new('CAMID studio camera'); cam=bpy.data.objects.new('CAMID studio camera', data)
-studio.objects.link(cam); cam.location=(-.25,.38,.17); aim(cam,target); cam.data.lens=64
+studio.objects.link(cam); cam.location=(.25,.38,.17); aim(cam,target); cam.data.lens=64
 scene=bpy.context.scene; scene.camera=cam; scene.render.engine='CYCLES'
 prefs=bpy.context.preferences.addons['cycles'].preferences
 try:
@@ -144,15 +182,21 @@ except Exception:
     scene.cycles.device='CPU'
 scene.cycles.samples=args.samples; scene.cycles.use_denoising=True
 scene.render.resolution_x=1400; scene.render.resolution_y=1200; scene.render.resolution_percentage=100
-scene.view_settings.view_transform='Filmic'; scene.view_settings.look='Medium High Contrast'; scene.view_settings.exposure=0
+scene.view_settings.view_transform='Filmic'; scene.view_settings.look='Medium High Contrast'; scene.view_settings.exposure=-.35
 scene.render.image_settings.file_format='PNG'; scene.render.filepath=str(out/'camid-b1-studio.png')
 scene['source'] = 'Corrected real CAD; 48 instances; accidental Big gear omitted'
 scene['materials'] = 'Presentation finishes inferred from designer Rendering references, not fabrication specifications'
 scene.render.film_transparent=False
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'CAMID-B1-studio.blend'))
 bpy.ops.render.render(write_still=True)
+# Empty studio backdrop keeps the live CAD model as the only product image.
+for o in mesh_objects + [logo]: o.hide_render = True
+scene.cycles.samples=32;scene.render.resolution_x=1920;scene.render.resolution_y=1080
+scene.render.image_settings.file_format='JPEG';scene.render.image_settings.color_mode='RGB'
+scene.render.image_settings.quality=95;scene.render.filepath=str(out/'studio-backdrop.jpg')
+bpy.ops.render.render(write_still=True)
 # A panoramic HDR of the same softboxes supplies local, portable web reflections.
-for o in mesh_objects: o.hide_render = True
+for o in mesh_objects + [logo]: o.hide_render = True
 floor.hide_render = True
 for name, pos, power, sx, sy, color in lights:
     bpy.ops.mesh.primitive_plane_add(size=1, location=pos)
