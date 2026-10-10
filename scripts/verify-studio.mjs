@@ -52,15 +52,21 @@ for(const [key,a] of before){
   maxTransformError=Math.max(maxTransformError,...a.world.map((v,i)=>Math.abs(v-b.world[i])));
   maxBoundsError=Math.max(maxBoundsError,...a.bounds.map((v,i)=>Math.abs(v-b.bounds[i])));
   assert(b.triangles>0,key);
+  assert.equal(b.triangles,a.triangles,`Material zones changed CAD triangles: ${key}`);
 }
 assert(maxTransformError<.00002,`Transforms changed: ${maxTransformError}`);
 assert(maxBoundsError<.000002,`Bounds changed: ${maxBoundsError}`);
-assert(studio.materials.some(m=>m.name==='CAMID Brushed Gold Copper'));
-assert(studio.materials.some(m=>m.name==='CAMID Black Satin Shell'));
-assert(studio.materials.some(m=>m.name==='CAMID Emerald Coated Glass'&&m.extensions.KHR_materials_transmission));
+for(const name of ['CAMID Charcoal Micrograin Polymer','CAMID Graphite Bead Blasted Panel','CAMID Crimson Brushed Alloy','CAMID Brushed Steel']){
+  const m=studio.materials.find(m=>m.name===name);assert(m,name);
+  assert(m.normalTexture&&m.pbrMetallicRoughness.metallicRoughnessTexture,`Missing portable texture: ${name}`);
+}
+const glass=studio.materials.find(m=>m.name==='CAMID Neutral Optical Glass');
+assert(glass?.extensions.KHR_materials_transmission.transmissionFactor>.9);
+assert(glass.pbrMetallicRoughness.baseColorFactor.slice(0,3).every(v=>v>.9),'Glass contains dark color absorption');
+assert(studio.images.every(image=>image.bufferView!==undefined),'External texture breaks offline loading');
 assert.equal(studio.nodes.filter(n=>n.extras?.decorative&&n.extras.logo==='CAMID').length,1);
 assert(studio.images.some(image=>image.name==='camid-wordmark'&&image.bufferView!==undefined));
-assert(studio.meshes.some(m=>m.name.startsWith('Box 4001')&&m.primitives.length===2));
+assert(studio.meshes.some(m=>m.name.startsWith('Box 4001')&&m.primitives.length===4));
 const binaryOffset=20+studioBytes.readUInt32LE(12)+8;
 function values(index){
   const a=studio.accessors[index],view=studio.bufferViews[a.bufferView];
@@ -85,4 +91,4 @@ for(const n of studio.nodes){
   }
 }
 assert(planarCorners>300);assert(maxPlanarNormalError<.000001,'Planar shell corners inherit curved normals');
-console.log(JSON.stringify({parts:after.size,retainedRearCover:retainedCover,floatingRearCoverRemoved:true,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,copperCollar:true,glassTransmission:true,embeddedWordmark:true,planarCorners,maxPlanarNormalError},null,2));
+console.log(JSON.stringify({parts:after.size,retainedRearCover:retainedCover,floatingRearCoverRemoved:true,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,portableFinishTextures:studio.images.length-1,integratedMaterialZones:4,neutralGlassTransmission:true,embeddedWordmark:true,planarCorners,maxPlanarNormalError},null,2));

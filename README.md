@@ -6,7 +6,7 @@ CAMID B1 是一台基于真实装配结构设计的纯机械拍立得。本项�
 
 ## Blender 材质与棚灯
 
-产品视觉使用真实 CAD 网格在 Blender 3.1 中生成。`scripts/style_blender.py` 导入 `assets/camera-v3.glb`，按零件路径分配黑色缎面壳体、石墨支承、金铜色控制件、钢制辊筒和绿色镀膜玻璃，保留原始 STEP 的分面法线，并用 Cycles 生成可编辑工程、证明图、空棚背景与本地 HDR 反射环境。金色镜头环来自 `Box 4001` 的真实表面材质分区。CAMID 透明贴图嵌入 GLB，并随外壳一起运动；它是展示标识，不计入 CAD 零件数。
+产品视觉使用真实 CAD 网格在 Blender 3.1 中生成。`scripts/style_blender.py` 导入 `assets/camera-v3.glb`，按零件路径分配炭灰细颗粒壳体、石墨喷砂面板、红色拉丝金属、钢制传动件和中性透明玻璃，保留原始 STEP 的分面法线，并用 Cycles 生成可编辑工程、证明图、空棚背景与本地 HDR 反射环境。`Box 4001` 的壳体、镜头环、侧面板和边缘使用四个材质区，不拆分 CAD 零件。八张法线与粗糙度贴图及 CAMID 透明贴图均嵌入 GLB，离线仍可显示；标识随外壳一起运动，不计入 CAD 零件数。
 
 生成 Blender 资产：
 
@@ -42,12 +42,12 @@ python -m http.server 4173
 
 视觉语言来自 CAMID B1 的产品渲染与网页参考：
 
-- 黑色缎面外壳
+- 炭灰细颗粒外壳与石墨喷砂面板
 - 炭黑背景与内部机构
-- 金铜色镜头环与操作件
-- 青绿色镜片高光
+- 暗红拉丝镜头环与操作件、钢色传动件
+- 中性透明镜片与白色软箱反射
 - 黑色胶囊导航和大字号几何标题
-- 红色轮廓光、暗橙棚景与中性软箱反射
+- 红色轮廓光、暗红棚景与中性软箱反射
 
 页面使用不同的内容载体来避免“每章都是模型加文字”：实时 CAD 总装配、零件目录、装配进度条、快门叠层观察器和零件分类挑战分别承担不同的知识目标。
 
@@ -77,11 +77,13 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 
 ## 页面截图
 
-![Black gold CAD product](screenshots/11-black-gold-home.png)
+![Charcoal crimson CAD product](screenshots/17-charcoal-crimson-home.png)
+
+![Material zones and fine surface texture](screenshots/18-surface-closeup.png)
 
 ![Continuous CAD burst](screenshots/12-black-gold-burst.png)
 
-![Black gold exploded CAD](screenshots/13-black-gold-exploded.png)
+![Charcoal crimson exploded CAD](screenshots/13-black-gold-exploded.png)
 
 ![Corrected single rear cover](screenshots/16-rear-cover-corrected.png)
 
@@ -144,3 +146,5 @@ node scripts/verify-shot.cjs
 ```
 
 镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 47 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖。
+
+`node scripts/verify-materials.cjs` 检查四种带贴图的真实 WebGL 材质、壳体四个材质区、玻璃中性透射及离线贴图解码，并通过关闭法线贴图后的像素对比确认纹理参与渲染。

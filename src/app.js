@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const $ = s => document.querySelector(s);
@@ -50,15 +51,19 @@ const hdrData=new RGBELoader().parse(hdrBytes.buffer);
 const hdr=new THREE.DataTexture(hdrData.data,hdrData.width,hdrData.height,THREE.RGBAFormat,hdrData.type);
 hdr.mapping=THREE.EquirectangularReflectionMapping;hdr.colorSpace=THREE.LinearSRGBColorSpace;hdr.needsUpdate=true;
 const environment=pmrem.fromEquirectangular(hdr).texture;
-scene.environment=environment;scene.environmentIntensity=.65;hdr.dispose();pmrem.dispose();
-scene.add(new THREE.HemisphereLight(0xf0f1f3,0x6b5860,1.4));
+// Neutral softboxes keep the optical surface readable without green/red tint.
+const opticalRoom=new RoomEnvironment();
+const opticalEnvironment=pmrem.fromScene(opticalRoom,.025).texture;
+opticalRoom.dispose();
+scene.environment=environment;scene.environmentIntensity=.85;hdr.dispose();pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xf0f2f5,0x393b42,1.1));
 function light(color,intensity,pos){const l=new THREE.DirectionalLight(color,intensity);l.position.copy(pos);scene.add(l);return l;}
-const keyLight=light(0xfff4e7,5.8,v3(3,4,-3));
+const keyLight=light(0xf2f4ff,4.4,v3(3,4,-3));
 keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);
 Object.assign(keyLight.shadow.camera,{left:-2.3,right:2.3,top:2.3,bottom:-2.3,near:.1,far:14});
 keyLight.shadow.bias=-.00015;keyLight.shadow.normalBias=.002;keyLight.shadow.radius=4;keyLight.shadow.blurSamples=16;
-light(0xd9e6ff,.55,v3(-4,2,-1));
-const redRim=light(0xff2815,1.8,v3(1,3,4));
+light(0xe0e8ff,1.0,v3(-4,2,-1));
+const redRim=light(0xe61b2d,1.25,v3(1,3,4));
 const holder=new THREE.Group();holder.rotation.x=-Math.PI/2;holder.scale.setScalar(10);scene.add(holder);
 let model=null;
 
@@ -115,10 +120,12 @@ function description(m){
 const materialsOf=m=>Array.isArray(m.material)?m.material:[m.material];
 function preserveStudioMaterial(material){
   const result=material.clone();result.side=THREE.FrontSide;result.envMapIntensity=1;
-  if(result.name==='CAMID Emerald Coated Glass'){
-    result.transmission=.38;result.thickness=.025;result.ior=1.46;result.roughness=.075;
-    result.attenuationColor=new THREE.Color(0x466c64);result.attenuationDistance=.16;
-    result.iridescence=.32;result.iridescenceIOR=1.3;result.iridescenceThicknessRange=[180,330];
+  if(result.name==='CAMID Neutral Optical Glass'){
+    // Thickness is in CAD metres; the renderer already applies the holder scale.
+    result.transmission=.96;result.thickness=.009;result.ior=1.5;result.roughness=.025;
+    result.attenuationColor=new THREE.Color(0xffffff);result.attenuationDistance=Infinity;
+    result.iridescence=0;result.envMap=opticalEnvironment;result.envMapIntensity=1.35;
+    result.depthWrite=false;
   }
   return result;
 }
