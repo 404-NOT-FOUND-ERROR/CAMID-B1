@@ -1,16 +1,22 @@
 {
   "source": "Camera V3.STEP",
   "sha256": "a70d0ff78c8dc19bacc604701a983698d4550479f93bb2e79bfd173eccd07725",
-  "nodes": 52,
-  "uniqueMeshes": 41,
-  "partInstances": 47,
-  "triangles": 68798,
-  "bytes": 2296588,
+  "nodes": 51,
+  "uniqueMeshes": 40,
+  "partInstances": 46,
+  "triangles": 64798,
+  "bytes": 2180088,
   "excludedPaths": [
     "/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear",
-    "/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut"
+    "/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut",
+    "/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut"
   ],
   "omittedParts": [
+    {
+      "name": "lever handle 6008_Défaut",
+      "path": "/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut",
+      "reason": "Designer-confirmed unwanted outer lever handle; inner Handle 2 retained and aligned with upper support slot"
+    },
     {
       "name": "Trap 6001_Défaut",
       "path": "/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut",
@@ -20,6 +26,79 @@
       "name": "2113 - Printer - Big gear",
       "path": "/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear",
       "reason": "Designer-confirmed auxiliary gear accidentally included in export"
+    }
+  ],
+  "assemblyCorrections": [
+    {
+      "path": "/Camera V3/Tank 6000_Défaut/Handle 2^Tank 6000_Défaut",
+      "targetPartPath": "/Camera V3/Tank 6000_Défaut/lever support 6007_Défaut",
+      "sourceSeatCenter_mm": [
+        58.13240530500562,
+        1.707165222437078,
+        -66.236402
+      ],
+      "targetSeatCenter_mm": [
+        70.2063065,
+        -4.99666,
+        -22.7105865
+      ],
+      "targetSlotRadius_mm": 2.5998353958129883,
+      "targetSlotEndCenters_mm": [
+        [
+          70.206307,
+          -4.99666,
+          -24.707618
+        ],
+        [
+          70.206306,
+          -4.99666,
+          -20.713555
+        ]
+      ],
+      "reason": "Designer requests the inner Handle 2 at the upper hole. Center the original back face on the lever support slot and seat it at the outer support face; omit lever handle 6008.",
+      "evidence": "STEP analytic cylindrical faces and circular edges; 3202 - LeverHandle.pdf confirms the retained 12 x 28 mm profile.",
+      "limitation": "Handle 2 has no round insertion pin. This records static seat alignment, not a verified SolidWorks mate or added pin geometry.",
+      "translationWorld_mm": [
+        12.073901194994377,
+        -6.70382522243708,
+        43.52581549999999
+      ],
+      "sourceWorldMatrix": [
+        0.9999999998205076,
+        -1.894461240291253e-05,
+        2.9410565225147575e-07,
+        0.0,
+        2.9410565230425273e-07,
+        -4.3813915277601227e-23,
+        -0.9999999999999567,
+        0.0,
+        1.894461240291171e-05,
+        0.999999999820551,
+        5.571717588366013e-12,
+        0.0,
+        0.018456471316401286,
+        0.0037080305156639397,
+        -0.052910242792990676,
+        1.0
+      ],
+      "correctedWorldMatrix": [
+        0.9999999998205076,
+        -1.894461240291253e-05,
+        2.9410565225147575e-07,
+        0.0,
+        2.9410565230425273e-07,
+        -4.3813915277601227e-23,
+        -0.9999999999999567,
+        0.0,
+        1.894461240291171e-05,
+        0.999999999820551,
+        5.571717588366013e-12,
+        0.0,
+        0.030530372511395662,
+        -0.0029957947067731396,
+        -0.009384427292990681,
+        1.0
+      ]
     }
   ],
   "parts": [
@@ -101,28 +180,9 @@
     },
     {
       "node": 6,
-      "name": "lever handle 6008_Défaut",
-      "path": "/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut",
-      "mesh": 4,
-      "triangles": 4000,
-      "bounds_m": [
-        [
-          0.06035478438023492,
-          -0.008421661726545775,
-          -0.07240609739375863
-        ],
-        [
-          0.07836668293096255,
-          0.0027744860140787257,
-          -0.05052282884368474
-        ]
-      ]
-    },
-    {
-      "node": 7,
       "name": "film dimensions_Défaut",
       "path": "/Camera V3/Tank 6000_Défaut/film dimensions_Défaut",
-      "mesh": 5,
+      "mesh": 4,
       "triangles": 88,
       "bounds_m": [
         [
@@ -138,29 +198,29 @@
       ]
     },
     {
-      "node": 8,
+      "node": 7,
       "name": "Handle 2^Tank 6000_Défaut",
       "path": "/Camera V3/Tank 6000_Défaut/Handle 2^Tank 6000_Défaut",
-      "mesh": 6,
+      "mesh": 5,
       "triangles": 68,
       "bounds_m": [
         [
-          0.058132405305005616,
-          -0.0022929485180773713,
-          -0.08023640892973515
+          0.07020630649999998,
+          -0.008996773740514451,
+          -0.03671059342973515
         ],
         [
-          0.07013256333637484,
-          0.005707278962951527,
-          -0.052236405816725666
+          0.08220646453136922,
+          -0.000996546259485552,
+          -0.008710590316725667
         ]
       ]
     },
     {
-      "node": 10,
+      "node": 9,
       "name": "Box 4001_Défaut",
       "path": "/Camera V3/Shutter_Défaut/Box 4001_Défaut",
-      "mesh": 7,
+      "mesh": 6,
       "triangles": 8896,
       "bounds_m": [
         [
@@ -176,10 +236,10 @@
       ]
     },
     {
-      "node": 11,
+      "node": 10,
       "name": "Shutter 1 4003_Défaut",
       "path": "/Camera V3/Shutter_Défaut/Shutter 1 4003_Défaut",
-      "mesh": 8,
+      "mesh": 7,
       "triangles": 808,
       "bounds_m": [
         [
@@ -195,10 +255,10 @@
       ]
     },
     {
-      "node": 12,
+      "node": 11,
       "name": "shutter 2 4004_Défaut",
       "path": "/Camera V3/Shutter_Défaut/shutter 2 4004_Défaut",
-      "mesh": 9,
+      "mesh": 8,
       "triangles": 756,
       "bounds_m": [
         [
@@ -214,10 +274,10 @@
       ]
     },
     {
-      "node": 13,
+      "node": 12,
       "name": "Shutter 3 4005_Défaut",
       "path": "/Camera V3/Shutter_Défaut/Shutter 3 4005_Défaut",
-      "mesh": 10,
+      "mesh": 9,
       "triangles": 1890,
       "bounds_m": [
         [
@@ -233,10 +293,10 @@
       ]
     },
     {
-      "node": 14,
+      "node": 13,
       "name": "Trigger 4002_Défaut",
       "path": "/Camera V3/Shutter_Défaut/Trigger 4002_Défaut",
-      "mesh": 11,
+      "mesh": 10,
       "triangles": 440,
       "bounds_m": [
         [
@@ -252,10 +312,10 @@
       ]
     },
     {
-      "node": 15,
+      "node": 14,
       "name": "Wheel^Shutter_Défaut",
       "path": "/Camera V3/Shutter_Défaut/Wheel^Shutter_Défaut",
-      "mesh": 12,
+      "mesh": 11,
       "triangles": 2436,
       "bounds_m": [
         [
@@ -271,10 +331,10 @@
       ]
     },
     {
-      "node": 16,
+      "node": 15,
       "name": "Glass",
       "path": "/Camera V3/Shutter_Défaut/Glass",
-      "mesh": 13,
+      "mesh": 12,
       "triangles": 400,
       "bounds_m": [
         [
@@ -290,10 +350,10 @@
       ]
     },
     {
-      "node": 18,
+      "node": 17,
       "name": "1111 - Printer - Roller2",
       "path": "/Camera V3/Printer - FullAssembly/1111 - Printer - Roller2",
-      "mesh": 14,
+      "mesh": 13,
       "triangles": 536,
       "bounds_m": [
         [
@@ -309,10 +369,10 @@
       ]
     },
     {
-      "node": 19,
+      "node": 18,
       "name": "1111 - Printer - Roller",
       "path": "/Camera V3/Printer - FullAssembly/1111 - Printer - Roller",
-      "mesh": 15,
+      "mesh": 14,
       "triangles": 204,
       "bounds_m": [
         [
@@ -328,10 +388,10 @@
       ]
     },
     {
-      "node": 20,
+      "node": 19,
       "name": "1112 - Printer - FilmExit",
       "path": "/Camera V3/Printer - FullAssembly/1112 - Printer - FilmExit",
-      "mesh": 16,
+      "mesh": 15,
       "triangles": 1828,
       "bounds_m": [
         [
@@ -347,10 +407,10 @@
       ]
     },
     {
-      "node": 21,
+      "node": 20,
       "name": "1113 - Printer - PrinterLock",
       "path": "/Camera V3/Printer - FullAssembly/1113 - Printer - PrinterLock",
-      "mesh": 17,
+      "mesh": 16,
       "triangles": 2112,
       "bounds_m": [
         [
@@ -366,10 +426,10 @@
       ]
     },
     {
-      "node": 22,
+      "node": 21,
       "name": "1114 - Printer - RollerSupport1.2",
       "path": "/Camera V3/Printer - FullAssembly/1114 - Printer - RollerSupport1.2",
-      "mesh": 18,
+      "mesh": 17,
       "triangles": 664,
       "bounds_m": [
         [
@@ -385,10 +445,10 @@
       ]
     },
     {
-      "node": 23,
+      "node": 22,
       "name": "1115 - Printer - RollerSupport2.2",
       "path": "/Camera V3/Printer - FullAssembly/1115 - Printer - RollerSupport2.2",
-      "mesh": 19,
+      "mesh": 18,
       "triangles": 1036,
       "bounds_m": [
         [
@@ -404,10 +464,10 @@
       ]
     },
     {
-      "node": 24,
+      "node": 23,
       "name": "1116 - Printer - RollerSupport3",
       "path": "/Camera V3/Printer - FullAssembly/1116 - Printer - RollerSupport3",
-      "mesh": 20,
+      "mesh": 19,
       "triangles": 992,
       "bounds_m": [
         [
@@ -423,10 +483,10 @@
       ]
     },
     {
-      "node": 25,
+      "node": 24,
       "name": "1117 - Printer - RollerSupport4",
       "path": "/Camera V3/Printer - FullAssembly/1117 - Printer - RollerSupport4",
-      "mesh": 21,
+      "mesh": 20,
       "triangles": 992,
       "bounds_m": [
         [
@@ -442,10 +502,10 @@
       ]
     },
     {
-      "node": 26,
+      "node": 25,
       "name": "1118 - Printer - RollerSupport5",
       "path": "/Camera V3/Printer - FullAssembly/1118 - Printer - RollerSupport5",
-      "mesh": 22,
+      "mesh": 21,
       "triangles": 1036,
       "bounds_m": [
         [
@@ -461,10 +521,10 @@
       ]
     },
     {
-      "node": 27,
+      "node": 26,
       "name": "1119 - Printer - RollerSupport6",
       "path": "/Camera V3/Printer - FullAssembly/1119 - Printer - RollerSupport6",
-      "mesh": 23,
+      "mesh": 22,
       "triangles": 656,
       "bounds_m": [
         [
@@ -480,10 +540,10 @@
       ]
     },
     {
-      "node": 28,
+      "node": 27,
       "name": "1120 - Printer - CubicRoller",
       "path": "/Camera V3/Printer - FullAssembly/1120 - Printer - CubicRoller",
-      "mesh": 24,
+      "mesh": 23,
       "triangles": 12,
       "bounds_m": [
         [
@@ -499,10 +559,10 @@
       ]
     },
     {
-      "node": 29,
+      "node": 28,
       "name": "1120 - Printer - CubicRoller",
       "path": "/Camera V3/Printer - FullAssembly/1120 - Printer - CubicRoller",
-      "mesh": 24,
+      "mesh": 23,
       "triangles": 12,
       "bounds_m": [
         [
@@ -518,10 +578,10 @@
       ]
     },
     {
-      "node": 30,
+      "node": 29,
       "name": "1121 - Printer - RollerGear",
       "path": "/Camera V3/Printer - FullAssembly/1121 - Printer - RollerGear",
-      "mesh": 25,
+      "mesh": 24,
       "triangles": 720,
       "bounds_m": [
         [
@@ -537,10 +597,10 @@
       ]
     },
     {
-      "node": 31,
+      "node": 30,
       "name": "1122 - Printer - CubeRollerGearS",
       "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
-      "mesh": 26,
+      "mesh": 25,
       "triangles": 528,
       "bounds_m": [
         [
@@ -556,10 +616,10 @@
       ]
     },
     {
-      "node": 32,
+      "node": 31,
       "name": "1121 - Printer - RollerGear",
       "path": "/Camera V3/Printer - FullAssembly/1121 - Printer - RollerGear",
-      "mesh": 25,
+      "mesh": 24,
       "triangles": 720,
       "bounds_m": [
         [
@@ -575,10 +635,10 @@
       ]
     },
     {
-      "node": 33,
+      "node": 32,
       "name": "1122 - Printer - CubeRollerGearS",
       "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
-      "mesh": 26,
+      "mesh": 25,
       "triangles": 528,
       "bounds_m": [
         [
@@ -594,10 +654,10 @@
       ]
     },
     {
-      "node": 34,
+      "node": 33,
       "name": "1122 - Printer - CubeRollerGearS",
       "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
-      "mesh": 26,
+      "mesh": 25,
       "triangles": 528,
       "bounds_m": [
         [
@@ -613,10 +673,10 @@
       ]
     },
     {
-      "node": 35,
+      "node": 34,
       "name": "1122 - Printer - CubeRollerGearS",
       "path": "/Camera V3/Printer - FullAssembly/1122 - Printer - CubeRollerGearS",
-      "mesh": 26,
+      "mesh": 25,
       "triangles": 528,
       "bounds_m": [
         [
@@ -632,10 +692,10 @@
       ]
     },
     {
-      "node": 36,
+      "node": 35,
       "name": "1123 - Printer - SpringSupportUp",
       "path": "/Camera V3/Printer - FullAssembly/1123 - Printer - SpringSupportUp",
-      "mesh": 27,
+      "mesh": 26,
       "triangles": 2028,
       "bounds_m": [
         [
@@ -651,10 +711,10 @@
       ]
     },
     {
-      "node": 37,
+      "node": 36,
       "name": "1124 - Printer - SpringSupportDown",
       "path": "/Camera V3/Printer - FullAssembly/1124 - Printer - SpringSupportDown",
-      "mesh": 28,
+      "mesh": 27,
       "triangles": 2428,
       "bounds_m": [
         [
@@ -670,10 +730,10 @@
       ]
     },
     {
-      "node": 38,
+      "node": 37,
       "name": "1127 - Printer - CubicRollerGearL",
       "path": "/Camera V3/Printer - FullAssembly/1127 - Printer - CubicRollerGearL",
-      "mesh": 29,
+      "mesh": 28,
       "triangles": 528,
       "bounds_m": [
         [
@@ -689,10 +749,10 @@
       ]
     },
     {
-      "node": 39,
+      "node": 38,
       "name": "1127 - Printer - CubicRollerGearL",
       "path": "/Camera V3/Printer - FullAssembly/1127 - Printer - CubicRollerGearL",
-      "mesh": 29,
+      "mesh": 28,
       "triangles": 528,
       "bounds_m": [
         [
@@ -708,10 +768,10 @@
       ]
     },
     {
-      "node": 40,
+      "node": 39,
       "name": "1112 - Printer - FilmExit2",
       "path": "/Camera V3/Printer - FullAssembly/1112 - Printer - FilmExit2",
-      "mesh": 30,
+      "mesh": 29,
       "triangles": 1800,
       "bounds_m": [
         [
@@ -727,10 +787,10 @@
       ]
     },
     {
-      "node": 41,
+      "node": 40,
       "name": "4000 - Case - PrinterCase",
       "path": "/Camera V3/Printer - FullAssembly/4000 - Case - PrinterCase",
-      "mesh": 31,
+      "mesh": 30,
       "triangles": 6684,
       "bounds_m": [
         [
@@ -746,10 +806,10 @@
       ]
     },
     {
-      "node": 42,
+      "node": 41,
       "name": "2112 - Printer - CrankShaft",
       "path": "/Camera V3/Printer - FullAssembly/2112 - Printer - CrankShaft",
-      "mesh": 32,
+      "mesh": 31,
       "triangles": 236,
       "bounds_m": [
         [
@@ -765,10 +825,10 @@
       ]
     },
     {
-      "node": 43,
+      "node": 42,
       "name": "1125 - Printer - CrankHandle",
       "path": "/Camera V3/Printer - FullAssembly/1125 - Printer - CrankHandle",
-      "mesh": 33,
+      "mesh": 32,
       "triangles": 1792,
       "bounds_m": [
         [
@@ -784,10 +844,10 @@
       ]
     },
     {
-      "node": 44,
+      "node": 43,
       "name": "1131 - Printer - ClipPin",
       "path": "/Camera V3/Printer - FullAssembly/1131 - Printer - ClipPin",
-      "mesh": 34,
+      "mesh": 33,
       "triangles": 228,
       "bounds_m": [
         [
@@ -803,10 +863,10 @@
       ]
     },
     {
-      "node": 45,
+      "node": 44,
       "name": "finger^Printer - FullAssembly_Défaut",
       "path": "/Camera V3/Printer - FullAssembly/finger^Printer - FullAssembly_Défaut",
-      "mesh": 35,
+      "mesh": 34,
       "triangles": 204,
       "bounds_m": [
         [
@@ -822,10 +882,10 @@
       ]
     },
     {
-      "node": 47,
+      "node": 46,
       "name": "Tank case^Tank case 7003_Camera V3_Défaut",
       "path": "/Camera V3/Tank case 7003^Camera V3_Défaut/Tank case^Tank case 7003_Camera V3_Défaut",
-      "mesh": 36,
+      "mesh": 35,
       "triangles": 5530,
       "bounds_m": [
         [
@@ -841,10 +901,10 @@
       ]
     },
     {
-      "node": 48,
+      "node": 47,
       "name": "Trap 6001_Défaut",
       "path": "/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut",
-      "mesh": 37,
+      "mesh": 36,
       "triangles": 2088,
       "bounds_m": [
         [
@@ -860,10 +920,10 @@
       ]
     },
     {
-      "node": 49,
+      "node": 48,
       "name": "Film_Défaut",
       "path": "/Camera V3/Film_Défaut",
-      "mesh": 38,
+      "mesh": 37,
       "triangles": 164,
       "bounds_m": [
         [
@@ -879,10 +939,10 @@
       ]
     },
     {
-      "node": 50,
+      "node": 49,
       "name": "Pressure button 1_默认",
       "path": "/Camera V3/Pressure button 1_默认",
-      "mesh": 39,
+      "mesh": 38,
       "triangles": 444,
       "bounds_m": [
         [
@@ -898,10 +958,10 @@
       ]
     },
     {
-      "node": 51,
+      "node": 50,
       "name": "Pressure button 2_默认",
       "path": "/Camera V3/Pressure button 2_默认",
-      "mesh": 40,
+      "mesh": 39,
       "triangles": 444,
       "bounds_m": [
         [

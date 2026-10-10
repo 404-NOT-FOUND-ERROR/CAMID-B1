@@ -23,7 +23,8 @@ const isReference = m => /film dimensions/i.test(shortName(m));
 // Guard stale assets using exact instance paths; the attached Trap is retained.
 const omittedPaths=new Set([
   '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear',
-  '/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut'
+  '/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut',
+  '/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut'
 ]);
 const isOmittedPart = m => omittedPaths.has(m.userData.path);
 const layerIndex = m => /shutter [123]/i.test(shortName(m)) ? Number(shortName(m).match(/shutter ([123])/i)[1])-1 : -1;
@@ -108,7 +109,7 @@ function description(m){
   if(/back tank/i.test(n))return ['Tank 后部构件','说明在前壳和 Lever 后安装后部 Tank。CAD 保留框体与实际孔位。'];
   if(/Front tank/i.test(n))return ['Tank 前部构件','Tank Case 说明先装前壳，再插入 Lever；这些步骤确定了装配顺序。'];
   if(/lever support/i.test(n))return ['Lever 支承件','与 Lever 和操作手柄共处 Tank 子装配。静态几何已确认，运动限位尚未验证。'];
-  if(/lever handle|Handle 2/i.test(n))return ['Lever 操作手柄','用户接触的操作件。说明第 5 步安装 Lever handle，不能据此确定一次拨动释放几张片材。'];
+  if(/Handle 2/i.test(n))return ['Lever 操作手柄','用户接触的操作件。按设计者确认，保留 Handle 2，背面中心对齐支承上方长孔。具体联动与行程仍需运动资料。'];
   if(/lever/i.test(n))return ['Lever 杠杆件','装配说明第 3 步插入 Lever。它在 Tank 内的几何位置已保留，工作行程需要运动资料。'];
   if(/Trap/.test(n))return ['Trap 后盖','装配说明最后关闭 Trap。这里保留贴合 Tank case 的后盖，位置与轮廓来自实际 CAD。'];
   if(/Tank case/.test(n))return ['Tank 外壳','总装配说明先将快门组滑入 Tank case，再将 Printer 组装到 Tank case 上。'];
@@ -211,7 +212,7 @@ function explodedOffset(m,center){
   if(/Front tank/i.test(n))return v3(0,-.11,-.025);
   if(/Trap/.test(n))return v3(0,-.405,-.026);
   if(/lever support/i.test(n))return v3(.18,-.12,-.026);
-  if(/lever handle|Handle 2/i.test(n))return v3(.24,-.15,-.026);
+  if(/Handle 2/i.test(n))return v3(.24,-.15,-.026);
   if(/lever/i.test(n))return v3(.12,-.14,-.026);
   if(/Film/.test(n))return v3(0,-.075,-.025);
   if(/Pressure button/.test(n))return v3(-.13,-.095,-.025);
@@ -398,7 +399,7 @@ renderer.domElement.addEventListener('pointerleave',()=>{$('#tooltip').hidden=tr
 const questions=[
   [/CrankHandle/,'曲柄手柄','Printer','手部输入件，最后加入 Printer。'],
   [/Shutter 3/i,'第三片快门','Shutter','与 Shutter 2 先组装，再放入快门盒体。'],
-  [/lever handle/i,'杠杆手柄','Tank','Tank 说明第 5 步安装的操作件。'],
+  [/Handle 2/i,'杠杆手柄','Tank','Tank 的操作手柄，对齐 Lever 支承上方孔位。'],
   [/CubicRoller$/,'方辊','Printer','两根长方辊先插入 Printer 支承孔。'],
   [/Wheel/,'光圈轮','Shutter','说明将 Aperture wheel 放在快门盒体内。'],
   [/back tank/i,'Tank 后部','Tank','Tank Case 说明的后部框体。']

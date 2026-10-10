@@ -1,0 +1,17 @@
+{
+  "source": "Camera V3.STEP",
+  "units": "mm",
+  "corrections": [
+    {
+      "path": "/Camera V3/Tank 6000_Défaut/Handle 2^Tank 6000_Défaut",
+      "targetPartPath": "/Camera V3/Tank 6000_Défaut/lever support 6007_Défaut",
+      "sourceSeatCenter_mm": [58.13240530500562, 1.707165222437078, -66.236402],
+      "targetSeatCenter_mm": [70.2063065, -4.99666, -22.7105865],
+      "targetSlotRadius_mm": 2.5998353958129883,
+      "targetSlotEndCenters_mm": [[70.206307, -4.99666, -24.707618], [70.206306, -4.99666, -20.713555]],
+      "reason": "Designer requests the inner Handle 2 at the upper hole. Center the original back face on the lever support slot and seat it at the outer support face; omit lever handle 6008.",
+      "evidence": "STEP analytic cylindrical faces and circular edges; 3202 - LeverHandle.pdf confirms the retained 12 x 28 mm profile.",
+      "limitation": "Handle 2 has no round insertion pin. This records static seat alignment, not a verified SolidWorks mate or added pin geometry."
+    }
+  ]
+}

@@ -24,7 +24,7 @@ const root=path.resolve(__dirname,'..');
    const glass=mat.find(m=>m.name==='CAMID Neutral Optical Glass');
    return {parts:d.meshes.length,zones:box.material.length,textures:textures.map(m=>({name:m.name,width:m.normalMap.image.width,height:m.normalMap.image.height,roughness:!!m.roughnessMap})),glass:{color:glass.color.toArray(),transmission:glass.transmission,iridescence:glass.iridescence,attenuation:glass.attenuationColor.toArray()}};
   });
-  assert.equal(surface.parts,47);assert.equal(surface.zones,4);assert.equal(surface.textures.length,4);
+  assert.equal(surface.parts,46);assert.equal(surface.zones,4);assert.equal(surface.textures.length,4);
   assert(surface.textures.every(t=>t.width===512&&t.height===512&&t.roughness));
   assert(surface.glass.color.every(c=>c>.9));assert(surface.glass.transmission>.9);assert.equal(surface.glass.iridescence,0);
   await page.setViewportSize({width:1400,height:1100});

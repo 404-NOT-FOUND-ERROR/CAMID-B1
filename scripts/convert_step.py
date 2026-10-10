@@ -53,13 +53,19 @@ EXCLUDED_PATHS = {
         'Designer-confirmed auxiliary gear accidentally included in export',
     '/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut':
         'Designer-confirmed duplicate outer floating rear cover; attached Tank case instance retained',
+    '/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut':
+        'Designer-confirmed unwanted outer lever handle; inner Handle 2 retained and aligned with upper support slot',
 }
+CORRECTIONS = {item['path']:item for item in json.loads(
+    Path(__file__).with_name('assembly-corrections.json').read_text(encoding='utf-8'))['corrections']}
+applied_corrections = []
 
 gltf = {'asset': {'version': '2.0', 'generator': 'CAMID STEP / OpenCascade 8',
         'extras': {'source': args.source.name, 'sha256': hashlib.sha256(args.source.read_bytes()).hexdigest(),
                    'units': 'metres', 'linearDeflection_mm': 0.12, 'angularDeflection_rad': 0.25,
                    'motionConstraints': False,
-                   'excludedPaths': sorted(EXCLUDED_PATHS)}},
+                   'excludedPaths': sorted(EXCLUDED_PATHS),
+                   'assemblyCorrections': list(CORRECTIONS.values())}},
         'scene': 0, 'scenes': [{'nodes': []}], 'nodes': [], 'meshes': [],
         'materials': [], 'accessors': [], 'bufferViews': [], 'buffers': []}
 binary = bytearray()
@@ -165,8 +171,19 @@ def walk(instance, parent_matrix=np.eye(4), path=''):
         print('omit', full, flush=True)
         return None
     world = parent_matrix @ local
+    correction = CORRECTIONS.get(full)
+    if correction:
+        source_world = world.copy()
+        delta = (np.array(correction['targetSeatCenter_mm'])-np.array(correction['sourceSeatCenter_mm']))*.001
+        world[:3,3] += delta
+        local = np.linalg.inv(parent_matrix) @ world
+        applied_corrections.append({**correction,'translationWorld_mm':(delta*1000).tolist(),
+                                   'sourceWorldMatrix':source_world.T.reshape(-1).tolist(),
+                                   'correctedWorldMatrix':world.T.reshape(-1).tolist()})
     node = {'name': part_name, 'matrix': local.T.reshape(-1).tolist(),
             'extras':{'stepLabel':entry(definition),'instanceLabel':entry(instance),'path':full}}
+    if correction:
+        node['extras']['assemblyCorrection'] = correction['reason']
     index = len(gltf['nodes'])
     gltf['nodes'].append(node)
     children = Sequence_TDF_Label()
@@ -196,6 +213,8 @@ args.output.write_bytes(struct.pack('<III',0x46546c67,2,total)+struct.pack('<II'
 manifest = {'source':args.source.name,'sha256':gltf['asset']['extras']['sha256'],
             'nodes':len(gltf['nodes']),'uniqueMeshes':len(cache),'partInstances':len(parts),
             'triangles':sum(p['triangles'] for p in parts),'bytes':total,
-            'excludedPaths':sorted(EXCLUDED_PATHS),'omittedParts':omitted,'parts':parts}
+            'excludedPaths':sorted(EXCLUDED_PATHS),'omittedParts':omitted,
+            'assemblyCorrections':applied_corrections,'parts':parts}
+assert len(applied_corrections) == len(CORRECTIONS), 'Missing correction target'
 args.output.with_suffix('.manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps({k:v for k,v in manifest.items() if k != 'parts'},ensure_ascii=False))

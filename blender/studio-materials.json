@@ -34,14 +34,6 @@
       ]
     },
     {
-      "path": "/Camera V3/Tank 6000_D\u00e9faut/lever handle 6008_D\u00e9faut",
-      "instanceLabel": "0:1:1:2:5",
-      "finish": "CAMID Crimson Brushed Alloy",
-      "zones": [
-        "CAMID Crimson Brushed Alloy"
-      ]
-    },
-    {
       "path": "/Camera V3/Tank 6000_D\u00e9faut/film dimensions_D\u00e9faut",
       "instanceLabel": "0:1:1:2:7",
       "finish": "CAMID Film Black",

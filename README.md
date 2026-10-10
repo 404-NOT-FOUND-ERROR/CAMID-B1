@@ -75,6 +75,8 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 
 源 STEP 还包含两块相同的 `Trap 6001` 后盖。根据设计者对截图的确认，排除 `/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut` 这一外侧悬浮副本，保留贴合机身的 `/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut`。Blender 场景、派生模型、零件目录和爆炸图均只包含一块后盖。
 
+设计者还确认删除外侧 `lever handle 6008`，保留内侧 `Handle 2` 并装到 `lever support 6007` 上方孔位。派生资产依据 STEP 圆角长孔与外侧支承面的实际坐标修正这一个实例位置，保留其轮廓和方向。`scripts/assembly-corrections.json` 与 manifest 记录源/目标定位点和变换。当前几何没有圆形插销，修正为静态定位；完整运动配合仍需 CAD 约束。
+
 ## 页面截图
 
 ![Charcoal crimson CAD product](screenshots/17-charcoal-crimson-home.png)
@@ -86,6 +88,8 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 ![Charcoal crimson exploded CAD](screenshots/13-black-gold-exploded.png)
 
 ![Corrected single rear cover](screenshots/16-rear-cover-corrected.png)
+
+![Retained handle aligned to upper slot](screenshots/19-handle-upper-slot.png)
 
 ![Mobile CAD product](screenshots/14-black-gold-mobile.png)
 
@@ -141,10 +145,11 @@ pnpm run build
 
 ```powershell
 node scripts/verify-studio.mjs
+node scripts/verify-assembly.mjs
 $env:CAMID_PORT='4173'
 node scripts/verify-shot.cjs
 ```
 
-镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 47 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖。
+镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 46 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖及上方孔位的内侧手柄。装配检查直接核对实际网格上的孔边、手柄定位点与接触面。
 
 `node scripts/verify-materials.cjs` 检查四种带贴图的真实 WebGL 材质、壳体四个材质区、玻璃中性透射及离线贴图解码，并通过关闭法线贴图后的像素对比确认纹理参与渲染。

@@ -37,10 +37,14 @@ const cad=parse(await readFile('assets/camera-v3.glb'));
 const studioBytes=await readFile('assets/camera-v3-studio.glb');
 const studio=parse(studioBytes);
 const before=instances(cad),after=instances(studio);
-assert.equal(after.size,47);assert.equal(before.size,after.size);
+assert.equal(after.size,46);assert.equal(before.size,after.size);
+const retainedHandle='/Camera V3/Tank 6000_Défaut/Handle 2^Tank 6000_Défaut';
+const outerHandle='/Camera V3/Tank 6000_Défaut/lever handle 6008_Défaut';
 const retainedCover='/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut';
 const floatingCover='/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut';
 for(const gltf of [cad,studio]){
+  assert.equal(gltf.nodes.filter(n=>n.extras?.path===retainedHandle).length,1);
+  assert(!gltf.nodes.some(n=>n.extras?.path===outerHandle));
   const covers=gltf.nodes.filter(n=>n.extras?.path?.endsWith('/Trap 6001_Défaut'));
   assert.equal(covers.length,1);assert.equal(covers[0].extras.path,retainedCover);
   assert(!gltf.nodes.some(n=>n.extras?.path===floatingCover));
