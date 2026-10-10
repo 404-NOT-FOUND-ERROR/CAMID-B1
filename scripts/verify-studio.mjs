@@ -60,10 +60,12 @@ for(const [key,a] of before){
 }
 assert(maxTransformError<.00002,`Transforms changed: ${maxTransformError}`);
 assert(maxBoundsError<.000002,`Bounds changed: ${maxBoundsError}`);
-for(const name of ['CAMID Charcoal Micrograin Polymer','CAMID Graphite Bead Blasted Panel','CAMID Crimson Brushed Alloy','CAMID Brushed Steel']){
+for(const name of ['CAMID Charcoal Micrograin Polymer','CAMID Graphite Bead Blasted Panel','CAMID Graphite Signature Panel','CAMID Crimson Brushed Alloy','CAMID Brushed Steel']){
   const m=studio.materials.find(m=>m.name===name);assert(m,name);
   assert(m.normalTexture&&m.pbrMetallicRoughness.metallicRoughnessTexture,`Missing portable texture: ${name}`);
 }
+const signature=studio.materials.find(m=>m.name==='CAMID Graphite Signature Panel');
+assert(signature.pbrMetallicRoughness.baseColorTexture,'No bounded signature finish');
 const glass=studio.materials.find(m=>m.name==='CAMID Neutral Optical Glass');
 assert(glass?.extensions.KHR_materials_transmission.transmissionFactor>.9);
 assert(glass.pbrMetallicRoughness.baseColorFactor.slice(0,3).every(v=>v>.9),'Glass contains dark color absorption');

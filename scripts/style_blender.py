@@ -43,6 +43,7 @@ def material(name, color, metal, roughness, coat=0):
 
 shell = material('CAMID Charcoal Micrograin Polymer', (.019,.021,.024), 0, .60)
 panel = material('CAMID Graphite Bead Blasted Panel', (.038,.042,.047), .42, .46)
+signature = material('CAMID Graphite Signature Panel', (1,1,1), 1, 1)
 trim = material('CAMID Satin Graphite Edge', (.013,.015,.018), .45, .34)
 graphite = material('CAMID Graphite Support', (.022,.025,.030), .30, .50)
 red = material('CAMID Crimson Brushed Alloy', (.32,.027,.033), .68, .43, .04)
@@ -68,9 +69,10 @@ lines = np.repeat((lines-lines.mean())/lines.std(),size,axis=1)
 brush = lines*.8 + smooth(rng.random((size,size))-.5,2)
 
 def image_map(name, rgb):
-    image=bpy.data.images.new(name,width=size,height=size,alpha=True)
+    height,width=rgb.shape[:2]
+    image=bpy.data.images.new(name,width=width,height=height,alpha=True)
     image.colorspace_settings.name='Non-Color'
-    rgba=np.concatenate((np.clip(rgb,0,1),np.ones((size,size,1))),axis=2).astype(np.float32)
+    rgba=np.concatenate((np.clip(rgb,0,1),np.ones((height,width,1))),axis=2).astype(np.float32)
     image.pixels.foreach_set(rgba.reshape(-1));image.update()
     image.filepath_raw=str(texture_dir/(name+'.png'));image.file_format='PNG';image.save();image.pack()
     return image
@@ -95,6 +97,51 @@ finish_maps(panel,grain,.46,.42,.08,.010)
 finish_maps(red,brush,.43,.68,.025,.012)
 finish_maps(steel,brush,.32,.92,.02,.012)
 
+# The reference has a bounded graphite finish around CAMID, within the same CAD face.
+# A non-repeating physical-coordinate mask keeps the boundary crisp without adding
+# a floating plate, changing the shell shape, or cutting up the source triangles.
+signature_bounds = ((-.020,.064),(.018,.071))  # STEP world Y/Z in metres
+signature_rectangle = ((.010,.057),(.024,.064))
+def signature_maps():
+    res=1024
+    y=np.linspace(*signature_bounds[0],res)[None,:]
+    z=np.linspace(*signature_bounds[1],res)[:,None]
+    y0,y1=signature_rectangle[0];z0,z1=signature_rectangle[1]
+    radius=.0006
+    dy=np.abs(y-(y0+y1)/2)-(y1-y0)/2+radius
+    dz=np.abs(z-(z0+z1)/2)-(z1-z0)/2+radius
+    distance=np.hypot(np.maximum(dy,0),np.maximum(dz,0))+np.minimum(np.maximum(dy,dz),0)-radius
+    mask=np.clip(.5-distance/.00009,0,1)
+    edge=np.exp(-((distance+.00007)/.000065)**2)*mask
+    samples=grain[(np.floor(z/.010*size).astype(int)%size), (np.floor(y/.010*size).astype(int)%size)]
+    outer=np.array([.019,.021,.024]);inside=np.array([.066,.071,.077])
+    color=outer+(inside-outer)*mask[:,:,None]
+    color*=1+samples[:,:,None]*.025
+    color*=1-edge[:,:,None]*.32
+    # Color textures use sRGB; ORM and tangent normals stay linear.
+    srgb=np.where(color<=.0031308,color*12.92,1.055*np.power(color,1/2.4)-.055)
+    base=image_map('CAMID signature bounded graphite color',srgb)
+    base.colorspace_settings.name='sRGB';base.reload();base.pack()
+    orm=image_map('CAMID signature finish ORM',np.stack((np.ones_like(mask),.62-.16*mask+samples*.025,.44*mask),axis=2))
+    field=samples*(.13-.075*mask)
+    dx=np.roll(field,-1,1)-np.roll(field,1,1)
+    dy=np.roll(field,-1,0)-np.roll(field,1,0)
+    normal=np.stack((-dx,-dy,np.ones_like(mask)),axis=2)
+    normal/=np.linalg.norm(normal,axis=2,keepdims=True)
+    normal_image=image_map('CAMID signature micrograin normal',normal*.5+.5)
+    nodes,links=signature.node_tree.nodes,signature.node_tree.links;bsdf=nodes.get('Principled BSDF')
+    for image,target in [(base,'Base Color'),(orm,None),(normal_image,'Normal')]:
+        tex=nodes.new('ShaderNodeTexImage');tex.image=image;tex.extension='EXTEND'
+        if target=='Base Color':links.new(tex.outputs['Color'],bsdf.inputs[target])
+        elif target=='Normal':
+            n=nodes.new('ShaderNodeNormalMap');links.new(tex.outputs['Color'],n.inputs['Color']);links.new(n.outputs['Normal'],bsdf.inputs['Normal'])
+        else:
+            separate=nodes.new('ShaderNodeSeparateRGB');links.new(tex.outputs['Color'],separate.inputs['Image'])
+            links.new(separate.outputs['G'],bsdf.inputs['Roughness']);links.new(separate.outputs['B'],bsdf.inputs['Metallic'])
+    signature['surface']='Bounded graphite signature finish; dark material boundary; continuous original CAD surface'
+    signature['rectangleWorldYZ_m']=[list(b) for b in signature_rectangle]
+signature_maps()
+
 glass_obj = next(o for o in mesh_objects if o.get('path').endswith('/Glass'))
 lens_points = [glass_obj.matrix_world @ Vector(v) for v in glass_obj.bound_box]
 lens_center = sum(lens_points, Vector())/8
@@ -112,7 +159,7 @@ for o in mesh_objects:
     else: m = shell
     o.data.materials.clear(); o.data.materials.append(m)
     if 'box 4001' in n:
-        o.data.materials.append(red);o.data.materials.append(panel);o.data.materials.append(trim)
+        o.data.materials.append(red);o.data.materials.append(signature);o.data.materials.append(trim)
         # The actual lens collar is integrated in Box 4001, not a separate invented ring.
         for p in o.data.polygons:
             c = o.matrix_world @ p.center
@@ -120,7 +167,7 @@ for o in mesh_objects:
             verts = [o.matrix_world @ o.data.vertices[i].co for i in p.vertices]
             if max(v.z for v in verts) > .077 and r < .032:
                 p.material_index = 1
-            elif abs(c.x-lens_center.x)>.029 and .02<c.z<.063:
+            elif c.x>.03 and (o.matrix_world.to_3x3()@p.normal).normalized().dot(Vector((.997564,0,.069756)))>.99999:
                 p.material_index = 2
             elif .070<c.z<.077 and r<.034:
                 p.material_index = 3
@@ -133,7 +180,11 @@ for o in mesh_objects:
         tile=o.data.materials[p.material_index].get('finishTile_m',.012)
         for loop_index in p.loop_indices:
             v=o.matrix_world@o.data.vertices[o.data.loops[loop_index].vertex_index].co
-            uv.data[loop_index].uv=(v[axes[0]]/tile,v[axes[1]]/tile)
+            if o.data.materials[p.material_index]==signature:
+                uv.data[loop_index].uv=((v.y-signature_bounds[0][0])/(signature_bounds[0][1]-signature_bounds[0][0]),
+                                        (v.z-signature_bounds[1][0])/(signature_bounds[1][1]-signature_bounds[1][0]))
+            else:
+                uv.data[loop_index].uv=(v[axes[0]]/tile,v[axes[1]]/tile)
     o['finish'] = m.name
     # STEP faces have separate vertices and correct custom split normals.
     # Welding the faces makes planar panels inherit curved corner normals.
@@ -144,10 +195,11 @@ for o in mesh_objects:
 # Add the real product mark as a surface decal on the existing shutter box.
 # It is decorative metadata, so the web viewer renders it without counting it as a new CAD part.
 box_obj = next(o for o in mesh_objects if 'box 4001' in o.get('path','').lower())
-bpy.ops.object.text_add(location=(.04040, .027, .043))
+bpy.ops.object.text_add(location=(.04040, .034, .043))
 logo = bpy.context.object; logo.name='CAMID logo decal'; logo.data.body='CAMID'; logo.data.align_x='CENTER'; logo.data.align_y='CENTER'
 logo.rotation_euler = Matrix(((0,-.069756,.997564),(1,0,0),(0,.997564,.069756))).to_euler()
-logo.data.size=.006; logo.data.extrude=0; logo.data.bevel_depth=0
+logo.data.font=bpy.data.fonts.load(str(root/'assets/fonts/ChakraPetch-SemiBold.ttf'))
+logo.data.size=.008; logo.data.extrude=0; logo.data.bevel_depth=0
 logo.data.materials.append(logo_gold); logo['decorative']=True; logo['logo']='CAMID'
 logo.parent=box_obj; logo.matrix_parent_inverse=box_obj.matrix_world.inverted()
 bpy.context.view_layer.objects.active=logo; logo.select_set(True); bpy.ops.object.convert(target='MESH'); logo.select_set(False)

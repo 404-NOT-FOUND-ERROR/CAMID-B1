@@ -69,9 +69,9 @@ const holder=new THREE.Group();holder.rotation.x=-Math.PI/2;holder.scale.setScal
 let model=null;
 
 // The shadow catcher and light grid are studio props. Product meshes come from STEP.
-const shadow=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.3}));
+const shadow=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.14}));
 shadow.rotation.x=-Math.PI/2;shadow.position.y=-.92;shadow.receiveShadow=true;scene.add(shadow);
-const grid=new THREE.GridHelper(4,24,0x476250,0x304739);grid.position.y=-.72;grid.material.transparent=true;grid.material.opacity=.18;grid.visible=false;scene.add(grid);
+const grid=new THREE.GridHelper(4,24,0x65656d,0x303038);grid.position.y=-.72;grid.material.transparent=true;grid.material.opacity=.18;grid.visible=false;scene.add(grid);
 
 const buildSteps=[
   ['先立起两块支承件','按说明第 1 步，放置 RollerSupport3 和 RollerSupport4。', '两端的孔先确定轴的位置，后面插入的长轴才有落点。',m=>/RollerSupport[34]$/.test(shortName(m))],
@@ -175,8 +175,8 @@ function fit(direction,margin=1.22){
 function defaultView(){
   if(shot.running)return;
   if(mode==='home'&&shot.active&&shot.startDirection){positionShotCamera();controls.update();return;}
-  camera.up.set(mode==='home'?.10:0,1,0).normalize();
-  const directions={home:v3(1,.58,-1.7),assembly:v3(1,.6,-1.7),build:v3(-1,.85,-1.35),shutter:v3(-1.5,.65,1.4)};
+  camera.up.set(mode==='home'?-.30:0,1,0).normalize();
+  const directions={home:v3(1.7,.45,-1.35),assembly:v3(1,.6,-1.7),build:v3(-1,.85,-1.35),shutter:v3(-1.5,.65,1.4)};
   fit(mode==='home'&&shot.progress>0?v3(1,.78,-1.6):(directions[mode]||directions.home),mode==='home'?1.13:1.2);
 }
 function syncRotate(){ $('#auto-rotate').setAttribute('aria-pressed',String(controls.autoRotate)); }
@@ -264,7 +264,7 @@ $('#shot-range').addEventListener('input',()=>{shot.running=false;controls.enabl
 function setAppearance(m){
   const highlight=mode==='assembly'&&selected===m;
   materialsOf(m).forEach(material=>{
-    material.emissive.setHex(highlight?0xbc662b:0x000000);material.emissiveIntensity=highlight?.32:0;
+    material.emissive.setHex(highlight?0x7b1722:0x000000);material.emissiveIntensity=highlight?.32:0;
     material.opacity=1;material.transparent=false;material.depthWrite=true;
     if(mode==='build' && buildStep===9 && isShell(m)){material.opacity=.28;material.transparent=true;material.depthWrite=false;}
   });
@@ -424,7 +424,7 @@ function makeDetective(){
     const copy=document.createElement('div');copy.className='card-copy';const micro=document.createElement('span');micro.className='micro';micro.textContent='PART '+String(i+1).padStart(2,'0')+' / CAD';
     const h=document.createElement('h3');h.textContent=q[1];const answers=document.createElement('div');answers.className='answer-options';
     ['Printer','Shutter','Tank'].forEach(f=>{const b=document.createElement('button');b.textContent=f;b.addEventListener('click',()=>{
-      if(f!==q[2]){$('#detective-message').textContent='再想一想：'+q[3];b.style.borderColor='#d48b5d';return;}
+      if(f!==q[2]){$('#detective-message').textContent='再想一想：'+q[3];b.classList.add('wrong');return;}
       card.classList.add('solved');answers.dataset.solved='✓ '+q[2]+' · 已归位';const score=$$('.detective-card.solved').length;
       $('#score').textContent=String(score).padStart(2,'0');$('#detective-message').textContent=score===6?'全部归位！你已经读懂了三个子装配的零件地图。':q[3];
     });answers.append(b);});copy.append(micro,h,answers);card.append(img,copy);$('#detective-grid').append(card);
