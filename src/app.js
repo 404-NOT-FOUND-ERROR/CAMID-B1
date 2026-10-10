@@ -19,9 +19,12 @@ const family = m => /\/Printer - FullAssembly\//.test(m.userData.path) ? 'Printe
   /\/Shutter(?:_|\/)/.test(m.userData.path) ? 'Shutter' : /\/Tank/.test(m.userData.path) ? 'Tank' : 'Camera';
 const isShell = m => /PrinterCase|Tank case|Box 4001/.test(shortName(m));
 const isReference = m => /film dimensions/i.test(shortName(m));
-// The supplied STEP includes this accidental auxiliary node. Keep a guard for
-// stale assets; the conversion script excludes the exact path at source.
-const isOmittedPart = m => m.userData.path === '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear';
+// Guard stale assets using exact instance paths; the attached Trap is retained.
+const omittedPaths=new Set([
+  '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear',
+  '/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut'
+]);
+const isOmittedPart = m => omittedPaths.has(m.userData.path);
 const layerIndex = m => /shutter [123]/i.test(shortName(m)) ? Number(shortName(m).match(/shutter ([123])/i)[1])-1 : -1;
 
 let renderer;
@@ -102,7 +105,7 @@ function description(m){
   if(/lever support/i.test(n))return ['Lever 支承件','与 Lever 和操作手柄共处 Tank 子装配。静态几何已确认，运动限位尚未验证。'];
   if(/lever handle|Handle 2/i.test(n))return ['Lever 操作手柄','用户接触的操作件。说明第 5 步安装 Lever handle，不能据此确定一次拨动释放几张片材。'];
   if(/lever/i.test(n))return ['Lever 杠杆件','装配说明第 3 步插入 Lever。它在 Tank 内的几何位置已保留，工作行程需要运动资料。'];
-  if(/Trap/.test(n))return ['Trap 门件','说明最后关闭 Trap。STEP 中存在两个同定义实例，本页均保留；未把它们合并成一个推测的动作。'];
+  if(/Trap/.test(n))return ['Trap 后盖','装配说明最后关闭 Trap。这里保留贴合 Tank case 的后盖，位置与轮廓来自实际 CAD。'];
   if(/Tank case/.test(n))return ['Tank 外壳','总装配说明先将快门组滑入 Tank case，再将 Printer 组装到 Tank case 上。'];
   if(/film dimensions/i.test(n))return ['片材尺寸参考','这是源 STEP 中放在整机外的参考实体。整机展示隐藏它，目录选中后可单独检查。'];
   if(/Film/.test(n))return ['Film 片材节点','源模型中的实际片材几何。它与 film dimensions 参考实体不同，页面没有假定完整送片路径。'];
@@ -199,7 +202,7 @@ function explodedOffset(m,center){
   if(/Tank case\^Tank case/.test(rawName(m)))return v3(0,-.19,-.008);
   if(/back tank/i.test(n))return v3(0,-.30,-.026);
   if(/Front tank/i.test(n))return v3(0,-.11,-.025);
-  if(/Trap/.test(n))return v3(0,-.35-(m.userData.path.includes('Tank case')?.055:0),-.026);
+  if(/Trap/.test(n))return v3(0,-.405,-.026);
   if(/lever support/i.test(n))return v3(.18,-.12,-.026);
   if(/lever handle|Handle 2/i.test(n))return v3(.24,-.15,-.026);
   if(/lever/i.test(n))return v3(.12,-.14,-.026);

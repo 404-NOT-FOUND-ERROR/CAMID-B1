@@ -26,7 +26,7 @@ bpy.ops.import_scene.gltf(filepath=str(root/'assets/camera-v3.glb'))
 bpy.ops.object.select_all(action='DESELECT')
 product = [o for o in bpy.context.scene.objects if o.get('path')]
 mesh_objects = [o for o in product if o.type == 'MESH']
-assert len(mesh_objects) == 48
+assert len(mesh_objects) == 47
 
 def material(name, color, metal, roughness, coat=0):
     m = bpy.data.materials.new(name)
@@ -184,7 +184,7 @@ scene.cycles.samples=args.samples; scene.cycles.use_denoising=True
 scene.render.resolution_x=1400; scene.render.resolution_y=1200; scene.render.resolution_percentage=100
 scene.view_settings.view_transform='Filmic'; scene.view_settings.look='Medium High Contrast'; scene.view_settings.exposure=-.35
 scene.render.image_settings.file_format='PNG'; scene.render.filepath=str(out/'camid-b1-studio.png')
-scene['source'] = 'Corrected real CAD; 48 instances; accidental Big gear omitted'
+scene['source'] = 'Corrected real CAD; 47 instances; accidental Big gear and duplicate floating rear cover omitted'
 scene['materials'] = 'Presentation finishes inferred from designer Rendering references, not fabrication specifications'
 scene.render.film_transparent=False
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'CAMID-B1-studio.blend'))

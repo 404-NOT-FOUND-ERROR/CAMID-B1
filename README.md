@@ -73,6 +73,8 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 
 源 STEP 中存在节点 `2113 - Printer - Big gear`，设计确认它是误隐藏的辅助零件，不属于最终产品展示。源 STEP 未被改写；派生 GLB 在转换时按完整路径排除了该节点，并在 `assets/camera-v3.manifest.json` 的 `excludedPaths` / `omittedParts` 中保留了可追溯记录。
 
+源 STEP 还包含两块相同的 `Trap 6001` 后盖。根据设计者对截图的确认，排除 `/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut` 这一外侧悬浮副本，保留贴合机身的 `/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut`。Blender 场景、派生模型、零件目录和爆炸图均只包含一块后盖。
+
 ## 页面截图
 
 ![Black gold CAD product](screenshots/11-black-gold-home.png)
@@ -80,6 +82,8 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 ![Continuous CAD burst](screenshots/12-black-gold-burst.png)
 
 ![Black gold exploded CAD](screenshots/13-black-gold-exploded.png)
+
+![Corrected single rear cover](screenshots/16-rear-cover-corrected.png)
 
 ![Mobile CAD product](screenshots/14-black-gold-mobile.png)
 
@@ -139,4 +143,4 @@ $env:CAMID_PORT='4173'
 node scripts/verify-shot.cjs
 ```
 
-镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 48 个实例与 345 个大壳面三角形角点的法线。
+镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 47 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖。

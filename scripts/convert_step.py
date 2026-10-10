@@ -46,11 +46,13 @@ ct = XCAFDoc_DocumentTool.ColorTool_s(doc.Main())
 roots = Sequence_TDF_Label()
 st.GetFreeShapes(roots)
 
-# The supplied STEP contains one auxiliary/accidental display node that the
-# designer confirmed should not be part of the educational model. Keep the
-# source STEP untouched, but exclude this exact instance from derived assets.
+# Exclude only the exact accidental instances confirmed by the designer.
+# The source STEP and the attached rear cover remain intact.
 EXCLUDED_PATHS = {
-    '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear',
+    '/Camera V3/Printer - FullAssembly/2113 - Printer - Big gear':
+        'Designer-confirmed auxiliary gear accidentally included in export',
+    '/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut':
+        'Designer-confirmed duplicate outer floating rear cover; attached Tank case instance retained',
 }
 
 gltf = {'asset': {'version': '2.0', 'generator': 'CAMID STEP / OpenCascade 8',
@@ -159,7 +161,7 @@ def walk(instance, parent_matrix=np.eye(4), path=''):
     full = path+'/'+part_name
     if full in EXCLUDED_PATHS:
         omitted.append({'name': part_name, 'path': full,
-                        'reason': 'User-confirmed auxiliary CAD node excluded from educational display'})
+                        'reason': EXCLUDED_PATHS[full]})
         print('omit', full, flush=True)
         return None
     world = parent_matrix @ local

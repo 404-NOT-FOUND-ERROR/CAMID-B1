@@ -37,7 +37,14 @@ const cad=parse(await readFile('assets/camera-v3.glb'));
 const studioBytes=await readFile('assets/camera-v3-studio.glb');
 const studio=parse(studioBytes);
 const before=instances(cad),after=instances(studio);
-assert.equal(after.size,48);assert.equal(before.size,after.size);
+assert.equal(after.size,47);assert.equal(before.size,after.size);
+const retainedCover='/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut';
+const floatingCover='/Camera V3/Tank 6000_Défaut/Trap 6001_Défaut';
+for(const gltf of [cad,studio]){
+  const covers=gltf.nodes.filter(n=>n.extras?.path?.endsWith('/Trap 6001_Défaut'));
+  assert.equal(covers.length,1);assert.equal(covers[0].extras.path,retainedCover);
+  assert(!gltf.nodes.some(n=>n.extras?.path===floatingCover));
+}
 let maxTransformError=0,maxBoundsError=0;
 for(const [key,a] of before){
   const b=after.get(key);assert(b,key);
@@ -78,4 +85,4 @@ for(const n of studio.nodes){
   }
 }
 assert(planarCorners>300);assert(maxPlanarNormalError<.000001,'Planar shell corners inherit curved normals');
-console.log(JSON.stringify({parts:after.size,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,copperCollar:true,glassTransmission:true,embeddedWordmark:true,planarCorners,maxPlanarNormalError},null,2));
+console.log(JSON.stringify({parts:after.size,retainedRearCover:retainedCover,floatingRearCoverRemoved:true,trianglesNonzero:true,instanceIdentityPreserved:true,maxTransformError,maxBoundsError_m:maxBoundsError,copperCollar:true,glassTransmission:true,embeddedWordmark:true,planarCorners,maxPlanarNormalError},null,2));
