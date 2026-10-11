@@ -36,7 +36,7 @@ python -m http.server 4173
 
 ## 互动内容
 
-- **整机 / 12 秒揭幕**：材质近景与灯光扫过 → 整机亮相 → 外壳先退 → 辊轴、齿轮与快门片依次展开 → 爆炸构图落定。支持暂停、继续、拖动时间轴、点击阶段定位、倒放合回、跳至全貌、Esc 退出及机械音效开关；结尾可以旋转观察并进入零件地图。默认静音，开启声音后才创建音频。
+- **整机 / 12 秒揭幕**：材质近景持续右摇 → 先拉远、左转随后接入 → 拉镜中外壳开始退开 → 辊轴、齿轮与快门片依次展开 → 爆炸构图落定。支持暂停、继续、拖动时间轴、点击阶段定位、倒放合回、跳至全貌、Esc 退出及机械音效开关；结尾可以旋转观察并进入零件地图。默认静音，开启声音后才创建音频。
 - **拆解**：按 `Printer`、`Shutter`、`Tank` 分组浏览真实零件，搜索、选中、单独观察并展开装配。
 - **装回去**：依据 A4-5/A4-6 Printer 装配说明逐步显示支承件、方辊、三类齿轮、圆辊、出口件、锁件、外壳和曲柄。
 - **快门叠层**：分开观察 CAD 中的 `Shutter 1/2/3`，对应 A4-8/A4-9 的叠层顺序；不把叠层动画冒充真实曝光时序。
@@ -165,7 +165,7 @@ node scripts/verify-shot.cjs
 $env:CAMID_URL='http://127.0.0.1:4173/#home'
 node scripts/verify-reveal.cjs
 node scripts/verify-reveal-impact.cjs
-node scripts/verify-reveal-ad.cjs
+node scripts/verify-reveal-bezier.cjs
 node scripts/verify-rear-side.cjs
 ```
 
@@ -175,6 +175,6 @@ node scripts/verify-rear-side.cjs
 
 2026-10-11 运镜修订扩大了首屏模型与揭幕画布，开场推到镜头环 / CAMID 铭牌的大特写，再拉远到完整相机。通过压低环境补光、强化移动中性主光与红色轮廓增加材质反差；其他探索章节恢复原观察光。`verify-reveal-impact.cjs` 将当前页面与 `references/reveal-impact/baseline` 中的修改前镜头比较，验证放大比例、近裁切安全距离、全路径可见像素、拖动后光影和构图一致、手机特写及章节灯光恢复，结果与前后对照图在 `screenshots/reveal-impact`。可用 `CAMID_BASELINE` 指定另一份基线目录。
 
-当前揭幕采用广告式运镜：保留开场推进的角度与尺度，将特写横向偏置从 0.85 降至 0.28；约 2.3 秒从固定机位向右摇，让镜头环进入中心，前 0.7 秒不退景，再接低倾角的平缓绕行，约 4.8 秒建立整机全景并开始开壳。桌面画布覆盖整个屏幕，消除画布上下边界截断模型的穿帮；全景预留时间轴空间。相机位置对所有可见零件保留近裁切安全距离，模型与字标保持原向。`verify-reveal-ad.cjs` 比较 `references/reveal-ad/baseline` 与当前取景，验证固定机位右摇、主体居中、先全景后开壳、所有实际网格顶点的近裁切距离、结尾控件避让、拖动一致及手机画面，报告在 `screenshots/reveal-ad`。旧的 `verify-reveal-flight.cjs` 入口转到这套现行验证。
+当前揭幕用独立三次贝塞尔时间曲线驱动推进、缓慢掠过、右摇、拉远、左转、外壳与机构展开。右摇在推进结束之前接入，约 1.6 秒的特写处持续移动；约 2.6 秒拉远，左转约延迟 1 秒接入，约 4.1 秒开始爆开外壳，与持续到约 6.2 秒的拉镜重叠。镜片与快门组件先随镜头外壳移动，再按各自节奏释放，避免外壳提前退开时出现光学组件错位。每条曲线分别控制加速与减速，避免各动作一起开始或在中间构图停住。桌面画布覆盖整个屏幕，全景预留时间轴空间；相机位置对所有可见零件保留近裁切安全距离，模型与字标保持原向。`verify-reveal-bezier.cjs` 比较 `references/reveal-bezier/baseline` 与当前取景，验证特写持续运动、拉远先于左转、爆炸与拉镜重叠、实际网格顶点的近裁切距离、结尾控件避让、拖动一致与手机画面，报告在 `screenshots/reveal-bezier`。旧的 `verify-reveal-ad.cjs` 与 `verify-reveal-flight.cjs` 入口转到这套现行验证。
 
 `node scripts/verify-materials.cjs` 检查九种带贴图的真实 WebGL 材质、壳体四个材质区、CAMID 边界贴图、玻璃中性透射及离线贴图解码，并通过关闭法线和边界贴图后的像素对比确认两者参与渲染。`node scripts/verify-reference.cjs` 检查全章节风格、手机宽度及离线字体，生成整机与标识区近照。`node scripts/verify-rear-side.cjs` 检查三处新增平面颜色贴图、法线和 ORM 的解码、0–1 UV 范围、ClampToEdgeWrapping、背面与侧面的像素效果以及揭幕时的零件绑定，输出 `screenshots/finish-v4/` 与 `references/finish-v4/validation.json`。

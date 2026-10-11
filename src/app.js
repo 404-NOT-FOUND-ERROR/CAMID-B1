@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {REVEAL_SECONDS,interval,phases,phaseAt,partReveal,cameraCue} from './reveal-timeline.js';
+import {REVEAL_SECONDS,interval,bezierProgress,curves,phases,phaseAt,partReveal,cameraCue} from './reveal-timeline.js';
 import {createRevealAudio} from './reveal-audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -289,7 +289,7 @@ function startShot(goal=1){
 function positionShotCamera(){
   if(!shot.active||!shot.startDirection)return;
   const p=shot.progress, cue=cameraCue(p,innerWidth<=760,reducedMotion);
-  const opening=interval(p,0,.13);
+  const opening=bezierProgress(p,0,.13,curves.push);
   const dir=shot.startDirection.clone().lerp(v3(...cue.dir).normalize(),opening).normalize();
   camera.up.copy(shot.startUp).lerp(v3(cue.roll,1,0).normalize(),opening).normalize();
   const margin=innerWidth<=760?1.15:(innerHeight<=500?1.12:1.40);
@@ -310,7 +310,7 @@ function positionShotCamera(){
     const halfHeight=result.distance*cue.zoom*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
     target=target.clone().addScaledVector(right,-halfHeight*camera.aspect*cue.screenX).addScaledVector(up,-halfHeight*cue.screenY);
   }
-  // Rotate the head towards the lens without moving the camera backwards.
+  // A continuing head pan overlaps the macro glide and precedes the delayed arc.
   const eye=target.clone().addScaledVector(dir,result.distance*cue.zoom);
   if(cue.pan&&lensCenter)target=target.clone().lerp(lensCenter,cue.pan);
   const forward=target.clone().sub(eye).normalize();
@@ -337,8 +337,8 @@ function updateShotLighting(){
     renderer.toneMappingExposure=.82;return;
   }
   const p=shot.active?shot.progress:0;
-  const sweep=shot.active?Math.sin(Math.PI*interval(p,.015,.34)):0;
-  const side=1-2*interval(p,.25,.40);
+  const sweep=shot.active?Math.sin(Math.PI*bezierProgress(p,.015,.42,curves.glide)):0;
+  const side=1-2*bezierProgress(p,.295,.47,curves.turn);
   // Keep black surfaces deep while a moving neutral key traces the metal edge.
   keyLight.position.set((3-4.5*sweep)*side,4+1.5*sweep,-3);
   fillLight.position.set(-4*side,2,-1);redRim.position.set(side,3,4);rearFill.position.set(-3*side,2,4);
@@ -409,7 +409,10 @@ function updateModel(){
     m.visible=!isOmittedPart(m);
     if(mode==='home'){
       m.visible=!isReference(m);
-      m.position.addScaledVector(m.userData.explodeVector,partReveal(n,f,shot.progress,idx));
+      const release=partReveal(n,f,shot.progress,idx);
+      m.position.addScaledVector(m.userData.explodeVector,release);
+      // Keep the optics seated in the moving case until their own release begins.
+      if(m.userData.revealCarrier)m.position.addScaledVector(m.userData.revealCarrier,partReveal('Box 4001','Shutter',shot.progress)*(1-release));
     }
     if(mode==='assembly'){
       m.visible=(group==='all'||f===group)&&(!hideShell||!isShell(m))&&!isReference(m);
@@ -596,6 +599,7 @@ try{
       const box=new THREE.Box3().setFromObject(m),center=box.getCenter(v3(0,0,0));
       const raw=center.clone().applyMatrix4(holder.matrixWorld.clone().invert()).sub(model.position);
       m.userData.explodeVector=localOffset(m,explodedOffset(m,raw));
+      m.userData.revealCarrier=family(m)==='Shutter'&&!isShell(m)?localOffset(m,v3(0,.155,.15)):null;
       m.userData.burstVector=localOffset(m,raw.clone().sub(v3(.006,.012,0)).normalize().multiplyScalar(.095));
       if(layerIndex(m)>=0){const el=document.createElement('span');el.className='layer-label';el.innerHTML='<i></i>Shutter '+(layerIndex(m)+1);$('#shutter-labels').append(el);labelElements.push({m,el});}
     });

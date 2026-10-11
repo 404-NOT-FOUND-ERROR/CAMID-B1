@@ -26,13 +26,16 @@ const loaded=async page=>{await page.goto(url);await page.waitForFunction(()=>wi
   assert((await state(page)).parts.every(p=>p.offset===0));contained(await state(page));
   await screenshot(page,'01-home');
   const start=Date.now();await page.locator('#hero-explosion').click();
-  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.185);
+  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.12);
   const coast=(await state(page)).shot;
-  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.225);
+  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.18);
   const bank=(await state(page)).shot,yaw=s=>Math.atan2(s.camera[0]-s.target[0],-(s.camera[2]-s.target[2]));
   assert(bank.running,'Reveal stopped after the material shot');
   assert(yaw(bank)>yaw(coast)+.03,'Camera head must pan right after the slow material pass');
-  report.continuesAndPansRightAfterMacro=true;
+  report.continuesThroughMacro=true;
+  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.38);
+  assert((await state(page)).parts.some(part=>part.amount>.01),'Explosion must begin before the pullback finishes');
+  report.explosionDuringPullback=true;
   await page.waitForFunction(()=>CAMID_STATE.shot.progress>.48);await page.locator('#shot-play').click();
   const paused=await state(page);assert(!paused.shot.running);assert(paused.parts.some(p=>p.amount>.3));
   assert(paused.parts.filter(p=>/Gear/.test(p.name)).every(p=>p.amount===0),'Gears should wait for the shells');
@@ -44,10 +47,10 @@ const loaded=async page=>{await page.goto(url);await page.waitForFunction(()=>wi
   assert(await page.locator('#shot-explore').isVisible());
   await page.locator('#shot-sound').click();assert.equal(await page.locator('#shot-sound').getAttribute('aria-pressed'),'true');
   await page.locator('#shot-sound').click();assert.equal((await state(page)).shot.sound,false);report.gestureAudio=true;
-  for(const [name,p] of [['02-macro',.19],['03-object',.39],['04-shell',.50],['05-mechanism',.71]]){
+  for(const [name,p] of [['02-macro',.13],['03-object',.30],['04-shell',.38],['05-mechanism',.71]]){
    await seek(page,p);await page.waitForTimeout(350);await screenshot(page,name);
    assert(!(await page.locator('.shot-finale').isVisible()),'Final exploration action overlays the material close-up');
-   if(p<.40)assert((await state(page)).parts.every(part=>part.offset===0));
+   if(p<=.34)assert((await state(page)).parts.every(part=>part.offset===0));
   }
   const sampled=await state(page);await seek(page,.95);await seek(page,.71);
   assert.deepEqual((await state(page)).parts,sampled.parts);assert.deepEqual((await state(page)).shot.camera,sampled.shot.camera);
