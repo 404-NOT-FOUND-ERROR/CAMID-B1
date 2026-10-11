@@ -165,7 +165,7 @@ node scripts/verify-shot.cjs
 $env:CAMID_URL='http://127.0.0.1:4173/#home'
 node scripts/verify-reveal.cjs
 node scripts/verify-reveal-impact.cjs
-node scripts/verify-reveal-flight.cjs
+node scripts/verify-reveal-ad.cjs
 node scripts/verify-rear-side.cjs
 ```
 
@@ -175,6 +175,6 @@ node scripts/verify-rear-side.cjs
 
 2026-10-11 运镜修订扩大了首屏模型与揭幕画布，开场推到镜头环 / CAMID 铭牌的大特写，再拉远到完整相机。通过压低环境补光、强化移动中性主光与红色轮廓增加材质反差；其他探索章节恢复原观察光。`verify-reveal-impact.cjs` 将当前页面与 `references/reveal-impact/baseline` 中的修改前镜头比较，验证放大比例、近裁切安全距离、全路径可见像素、拖动后光影和构图一致、手机特写及章节灯光恢复，结果与前后对照图在 `screenshots/reveal-impact`。可用 `CAMID_BASELINE` 指定另一份基线目录。
 
-随后保留获认可的第一段推进，将特写停留改成缓慢掠过；光影变化后以穿越机式倾斜向右摆出、拉远，整机、开壳与展开采用原后续运镜的镜像角度。镜头使用连续速度插值穿过中间关键帧，结尾才停稳；横向灯位随右摆平滑过渡，桌面探索入口移至左上空区。模型、字标与零件本身不镜像。`verify-reveal-flight.cjs` 对照 `references/reveal-flight/baseline` 验证首段保留、右摆方向、关键帧速度连续、后续镜像角度及拖动光影一致，截图与报告在 `screenshots/reveal-flight`。完整播放验证还检查特写之后继续向右运镜。
+当前揭幕采用广告式运镜：保留开场推进的角度与尺度，将特写横向偏置从 0.85 降至 0.28；约 2.3 秒从固定机位向右摇，让镜头环进入中心，前 0.7 秒不退景，再接低倾角的平缓绕行，约 4.8 秒建立整机全景并开始开壳。桌面画布覆盖整个屏幕，消除画布上下边界截断模型的穿帮；全景预留时间轴空间。相机位置对所有可见零件保留近裁切安全距离，模型与字标保持原向。`verify-reveal-ad.cjs` 比较 `references/reveal-ad/baseline` 与当前取景，验证固定机位右摇、主体居中、先全景后开壳、所有实际网格顶点的近裁切距离、结尾控件避让、拖动一致及手机画面，报告在 `screenshots/reveal-ad`。旧的 `verify-reveal-flight.cjs` 入口转到这套现行验证。
 
 `node scripts/verify-materials.cjs` 检查九种带贴图的真实 WebGL 材质、壳体四个材质区、CAMID 边界贴图、玻璃中性透射及离线贴图解码，并通过关闭法线和边界贴图后的像素对比确认两者参与渲染。`node scripts/verify-reference.cjs` 检查全章节风格、手机宽度及离线字体，生成整机与标识区近照。`node scripts/verify-rear-side.cjs` 检查三处新增平面颜色贴图、法线和 ORM 的解码、0–1 UV 范围、ClampToEdgeWrapping、背面与侧面的像素效果以及揭幕时的零件绑定，输出 `screenshots/finish-v4/` 与 `references/finish-v4/validation.json`。

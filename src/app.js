@@ -292,14 +292,15 @@ function positionShotCamera(){
   const opening=interval(p,0,.13);
   const dir=shot.startDirection.clone().lerp(v3(...cue.dir).normalize(),opening).normalize();
   camera.up.copy(shot.startUp).lerp(v3(cue.roll,1,0).normalize(),opening).normalize();
-  const result=frame(dir,innerWidth<=760?1.15:1.12);if(!result)return;
-  let target=result.center;
+  const margin=innerWidth<=760?1.15:(innerHeight<=500?1.12:1.40);
+  const result=frame(dir,margin);if(!result)return;
+  let target=result.center,lensCenter=null;
   if(cue.focus){
     const lens=meshes.find(m=>/Glass/.test(shortName(m)));
     const box=meshes.find(m=>/Box 4001/.test(shortName(m)));
     if(lens&&box){
-      const detail=new THREE.Box3().setFromObject(lens).getCenter(v3(0,0,0));
-      detail.lerp(new THREE.Box3().setFromObject(box).getCenter(v3(0,0,0)),.42);
+      lensCenter=new THREE.Box3().setFromObject(lens).getCenter(v3(0,0,0));
+      const detail=lensCenter.clone().lerp(new THREE.Box3().setFromObject(box).getCenter(v3(0,0,0)),.42);
       target=target.clone().lerp(detail,cue.focus);
     }
   }
@@ -309,8 +310,22 @@ function positionShotCamera(){
     const halfHeight=result.distance*cue.zoom*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
     target=target.clone().addScaledVector(right,-halfHeight*camera.aspect*cue.screenX).addScaledVector(up,-halfHeight*cue.screenY);
   }
+  // Rotate the head towards the lens without moving the camera backwards.
+  const eye=target.clone().addScaledVector(dir,result.distance*cue.zoom);
+  if(cue.pan&&lensCenter)target=target.clone().lerp(lensCenter,cue.pan);
+  const forward=target.clone().sub(eye).normalize();
+  let retreat=0;
+  for(const mesh of meshes.filter(m=>m.visible)){
+    const b=mesh.geometry.boundingBox;
+    for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){
+      const depth=v3(x,y,z).applyMatrix4(mesh.matrixWorld).sub(eye).dot(forward);
+      retreat=Math.max(retreat,.08-depth);
+    }
+  }
+  // Every visible part stays beyond the near plane, including protruding controls.
+  eye.addScaledVector(forward,-retreat);
   controls.target.copy(target);
-  camera.position.copy(target).addScaledVector(dir,result.distance*cue.zoom);
+  camera.position.copy(eye);
   camera.lookAt(target);
 }
 function updateShotLighting(){
@@ -323,7 +338,7 @@ function updateShotLighting(){
   }
   const p=shot.active?shot.progress:0;
   const sweep=shot.active?Math.sin(Math.PI*interval(p,.015,.34)):0;
-  const side=1-2*interval(p,.19,.35);
+  const side=1-2*interval(p,.25,.40);
   // Keep black surfaces deep while a moving neutral key traces the metal edge.
   keyLight.position.set((3-4.5*sweep)*side,4+1.5*sweep,-3);
   fillLight.position.set(-4*side,2,-1);redRim.position.set(side,3,4);rearFill.position.set(-3*side,2,4);

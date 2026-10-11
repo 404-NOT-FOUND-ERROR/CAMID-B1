@@ -1,5 +1,5 @@
 {
-  "continuesAndBanksRightAfterMacro": true,
+  "continuesAndPansRightAfterMacro": true,
   "pauseAndStagger": true,
   "playbackWallSeconds": 12.6,
   "gestureAudio": true,
