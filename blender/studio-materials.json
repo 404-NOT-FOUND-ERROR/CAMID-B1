@@ -297,7 +297,10 @@
       "instanceLabel": "0:1:1:19:24",
       "finish": "CAMID Charcoal Micrograin Polymer",
       "zones": [
-        "CAMID Charcoal Micrograin Polymer"
+        "CAMID Charcoal Micrograin Polymer",
+        "CAMID Upper Graphite Fascia",
+        "CAMID Satin Graphite Edge",
+        "CAMID Rear Graphite Fascia"
       ]
     },
     {
@@ -337,7 +340,10 @@
       "instanceLabel": "0:1:1:43:1",
       "finish": "CAMID Charcoal Micrograin Polymer",
       "zones": [
-        "CAMID Charcoal Micrograin Polymer"
+        "CAMID Charcoal Micrograin Polymer",
+        "CAMID Graphite Bead Blasted Panel",
+        "CAMID Satin Graphite Edge",
+        "CAMID Side Linear Grip"
       ]
     },
     {
@@ -345,7 +351,8 @@
       "instanceLabel": "0:1:1:43:2",
       "finish": "CAMID Graphite Bead Blasted Panel",
       "zones": [
-        "CAMID Graphite Bead Blasted Panel"
+        "CAMID Graphite Bead Blasted Panel",
+        "CAMID Rear Linear Grip"
       ]
     },
     {
@@ -438,5 +445,8 @@
         1
       ]
     ]
-  ]
+  ],
+  "wordmark": "User rendering reconstruction; thick condensed dark crimson, 36 mm ink width",
+  "fascia": "Graphite / satin upper shell atlas with B1 product code",
+  "rearSideFinishes": "Rear CAMID B1 fascia, horizontal-grain rear cover, linear side grip with crimson stripe and B1 identifier; generated flat color maps with portable ORM and tangent normals"
 }

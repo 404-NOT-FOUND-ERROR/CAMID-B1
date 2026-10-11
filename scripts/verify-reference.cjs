@@ -4,7 +4,7 @@ const {build}=createRequire(path.join(root,'package.json'))('esbuild');
 const {chromium}=createRequire(process.execPath)('playwright');
 (async()=>{
  const src=await fs.readFile(path.join(root,'src/app.js'),'utf8');
- const bundle=await build({stdin:{contents:src+'\nwindow.__inspect={meshes,camera,controls,fit,v3,THREE,renderer,scene,get model(){return model;},holder,decorations};',resolveDir:root},bundle:true,format:'iife',write:false});
+ const bundle=await build({stdin:{contents:src+'\nwindow.__inspect={meshes,camera,controls,fit,v3,THREE,renderer,scene,get model(){return model;},holder,decorations};',resolveDir:path.join(root,'src')},bundle:true,format:'iife',write:false});
  const b=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
  try{
   const p=await b.newPage({viewport:{width:1440,height:900}}),errors=[];
@@ -22,7 +22,7 @@ const {chromium}=createRequire(process.execPath)('playwright');
   const side=await b.newPage({viewport:{width:1440,height:1000}});
   await side.route('**/assets/app.js',r=>r.fulfill({contentType:'text/javascript',body:bundle.outputFiles[0].text}));
   await side.goto(`http://127.0.0.1:${process.env.CAMID_PORT||4175}/?v=signature#home`);await side.waitForFunction(()=>window.CAMID_STATE?.ready);
-  await side.addStyleTag({content:'#viewport{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important}.topbar,.chapter-nav,.hero-copy,.hero-caption,.hero-bottom,#model-tools,.corner-note{display:none!important}'});await side.waitForTimeout(300);
+  await side.addStyleTag({content:'#viewport{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important}.topbar,.chapter-nav,.hero-copy,.hero-caption,.hero-bottom,#model-tools,.corner-note{display:none!important}'});await side.waitForTimeout(700);
   const part=await side.evaluate(()=>{
    const d=__inspect,box=d.meshes.find(m=>m.userData.path.includes('/Box 4001'));
    const point=new d.THREE.Box3().setFromObject(d.decorations[0]).getCenter(d.v3(0,0,0));

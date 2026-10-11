@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {REVEAL_SECONDS,interval,phases,phaseAt,partReveal,cameraCue} from './reveal-timeline.js';
+import {createRevealAudio} from './reveal-audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
@@ -11,7 +13,8 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const viewport = $('#viewport');
 let mode = 'home', meshes = [], selected = null, isolated = false, group = 'all';
 let hideShell = false, buildStep = 0, shutterCase = false, ready = false;
-const shot={progress:0,goal:0,running:false,active:false,from:0,elapsed:0,duration:5,startDirection:null,startDistance:0,startTarget:null};
+const shot={progress:0,goal:1,running:false,active:false,from:0,elapsed:0,duration:12,startDirection:null,startDistance:0,startTarget:null,startUp:null,phase:-1};
+const revealAudio=createRevealAudio();
 let decorations=[];
 const v3 = (x,y,z) => new THREE.Vector3(x,y,z);
 const rawName = m => m.userData.path?.split('/').pop() || m.name;
@@ -57,14 +60,16 @@ const opticalRoom=new RoomEnvironment();
 const opticalEnvironment=pmrem.fromScene(opticalRoom,.025).texture;
 opticalRoom.dispose();
 scene.environment=environment;scene.environmentIntensity=.85;hdr.dispose();pmrem.dispose();
-scene.add(new THREE.HemisphereLight(0xf0f2f5,0x393b42,1.1));
+const ambientLight=new THREE.HemisphereLight(0xf0f2f5,0x393b42,1.1);scene.add(ambientLight);
 function light(color,intensity,pos){const l=new THREE.DirectionalLight(color,intensity);l.position.copy(pos);scene.add(l);return l;}
 const keyLight=light(0xf2f4ff,4.4,v3(3,4,-3));
 keyLight.castShadow=true;keyLight.shadow.mapSize.set(2048,2048);
 Object.assign(keyLight.shadow.camera,{left:-2.3,right:2.3,top:2.3,bottom:-2.3,near:.1,far:14});
 keyLight.shadow.bias=-.00015;keyLight.shadow.normalBias=.002;keyLight.shadow.radius=4;keyLight.shadow.blurSamples=16;
-light(0xe0e8ff,1.0,v3(-4,2,-1));
+const fillLight=light(0xe0e8ff,1.0,v3(-4,2,-1));
 const redRim=light(0xe61b2d,1.25,v3(1,3,4));
+// The rear cover and crank-side finish need a neutral reflection to reveal grain.
+const rearFill=light(0xf0f2f5,2.0,v3(-3,2,4));
 const holder=new THREE.Group();holder.rotation.x=-Math.PI/2;holder.scale.setScalar(10);scene.add(holder);
 let model=null;
 
@@ -174,10 +179,10 @@ function fit(direction,margin=1.22){
 }
 function defaultView(){
   if(shot.running)return;
-  if(mode==='home'&&shot.active&&shot.startDirection){positionShotCamera();controls.update();return;}
+  if(mode==='home'&&shot.active&&shot.startDirection){positionShotCamera();return;}
   camera.up.set(mode==='home'?-.30:0,1,0).normalize();
   const directions={home:v3(1.7,.45,-1.35),assembly:v3(1,.6,-1.7),build:v3(-1,.85,-1.35),shutter:v3(-1.5,.65,1.4)};
-  fit(mode==='home'&&shot.progress>0?v3(1,.78,-1.6):(directions[mode]||directions.home),mode==='home'?1.13:1.2);
+  fit(mode==='home'&&shot.progress>0?v3(1,.78,-1.6):(directions[mode]||directions.home),mode==='home'?1.06:1.2);
 }
 function syncRotate(){ $('#auto-rotate').setAttribute('aria-pressed',String(controls.autoRotate)); }
 function localOffset(m,rawOffset){
@@ -218,49 +223,156 @@ function explodedOffset(m,center){
   if(/Pressure button/.test(n))return v3(-.13,-.095,-.025);
   return v3(side*.07,-.08,0);
 }
-const ease=t=>t*t*(3-2*t);
 function updateShotUI(){
-  $('#shot-range').value=Math.round(shot.progress*100);
-  $('#shot-value').textContent=Math.round(shot.progress*100)+'%';
+  const index=phaseAt(shot.progress),phase=phases[index];
+  const complete=shot.active&&shot.progress===1&&!shot.running;
+  document.body.classList.toggle('shot-active',shot.active);
+  document.body.classList.toggle('shot-running',shot.running);
+  document.body.classList.toggle('shot-complete',complete);
+  document.body.dataset.revealPhase=String(index);
+  $('#shot-range').value=(shot.progress*100).toFixed(1);
+  $('#shot-range').style.setProperty('--progress',(shot.progress*100)+'%');
+  $('#shot-range').setAttribute('aria-valuetext',phase.short+'，'+Math.round(shot.progress*100)+'%');
+  $('#shot-value').textContent=(shot.progress*REVEAL_SECONDS).toFixed(1).padStart(4,'0')+' / 12s';
   $('#shot-play').textContent=shot.running?'Ⅱ':'▶';
-  $('#shot-play').title=shot.running?'暂停镜头':'播放镜头';
-  $('#hero-explosion').disabled=!ready;
+  $('#shot-play').title=shot.running?'暂停镜头':'继续镜头';
+  $('#shot-play').setAttribute('aria-label',shot.running?'暂停揭幕':'播放揭幕');
+  if($('#hero-explosion').disabled===ready){
+    $('#hero-explosion').disabled=!ready;
+    $('#hero-explosion').innerHTML=ready?'开启揭幕 <span>↗</span>':'装配加载中 <span>◌</span>';
+  }
+  $('.hero-copy').inert=shot.active;
+  $('.shot-console').inert=!shot.active;
+  $('.shot-actions').inert=!shot.active;
+  $('.shot-finale').inert=!complete;
+  $('.chapter-nav').inert=shot.active;
+  $('#model-tools').inert=shot.active&&!complete;
+  if(index!==shot.phase){
+    shot.phase=index;
+    $('#shot-code').textContent=phase.code;
+    $('#shot-heading').textContent=phase.title;
+    $('#shot-note').textContent=phase.note;
+    $('#shot-status').textContent=shot.active?phase.title:'';
+    $$('.shot-chapters button').forEach((button,i)=>{
+      button.classList.toggle('current',i===index);
+      button.classList.toggle('passed',i<index);
+      button.setAttribute('aria-current',i===index?'step':'false');
+    });
+  }
 }
 function captureShotCamera(){
   shot.startDirection=camera.position.clone().sub(controls.target).normalize();
   shot.startDistance=camera.position.distanceTo(controls.target);
-  shot.startTarget=controls.target.clone();
+  shot.startTarget=controls.target.clone();shot.startUp=camera.up.clone();
+}
+function activateShot(){
+  if(shot.active)return;
+  clearTimeout(setMode.timer);captureShotCamera();shot.active=true;
+  controls.autoRotate=false;controls.enableDamping=false;syncRotate();
+  updateShotUI();resize();
+}
+function resetShot(returnFocus=false){
+  shot.running=false;shot.progress=0;shot.active=false;shot.goal=1;shot.phase=-1;
+  controls.enabled=true;controls.enableDamping=true;revealAudio.silence();
+  updateShotUI();updateModel();resize();defaultView();
+  if(returnFocus)$('#hero-explosion').focus({preventScroll:true});
 }
 function startShot(goal=1){
-  if(!ready)return;
-  if(!shot.active){captureShotCamera();shot.active=true;document.body.classList.add('shot-active');}
+  if(!ready||mode!=='home')return;
+  activateShot();
+  if(goal===0&&shot.progress===0){resetShot(true);return;}
   shot.from=shot.progress;shot.goal=goal;shot.elapsed=0;
-  shot.duration=reducedMotion?1.4:Math.max(1.8,Math.abs(goal-shot.from)*5.2);
-  shot.running=true;controls.enabled=false;controls.autoRotate=false;syncRotate();updateShotUI();
+  shot.duration=Math.max(.15,Math.abs(goal-shot.from)*(reducedMotion?1.6:REVEAL_SECONDS));
+  shot.running=true;controls.enabled=false;controls.autoRotate=false;syncRotate();
+  revealAudio.cue(phaseAt(shot.progress),goal===0);updateShotUI();
 }
 function positionShotCamera(){
-  camera.up.set(THREE.MathUtils.lerp(.10,.5,ease(shot.progress)),1,0).normalize();
-  const p=ease(shot.progress),dir=shot.startDirection.clone().lerp(v3(-1.15,.72,-1.8).normalize(),p).normalize();
-  const result=frame(dir,1.13);if(!result)return;
-  controls.target.copy(shot.startTarget).lerp(result.center,p);
-  const distance=THREE.MathUtils.lerp(shot.startDistance,result.distance,p);
-  camera.position.copy(controls.target).addScaledVector(dir,Math.max(distance,result.distance));
-  camera.lookAt(controls.target);
+  if(!shot.active||!shot.startDirection)return;
+  const p=shot.progress, cue=cameraCue(p,innerWidth<=760,reducedMotion);
+  const opening=interval(p,0,.13);
+  const dir=shot.startDirection.clone().lerp(v3(...cue.dir).normalize(),opening).normalize();
+  camera.up.copy(shot.startUp).lerp(v3(cue.roll,1,0).normalize(),opening).normalize();
+  const result=frame(dir,innerWidth<=760?1.15:1.12);if(!result)return;
+  let target=result.center;
+  if(cue.focus){
+    const lens=meshes.find(m=>/Glass/.test(shortName(m)));
+    const box=meshes.find(m=>/Box 4001/.test(shortName(m)));
+    if(lens&&box){
+      const detail=new THREE.Box3().setFromObject(lens).getCenter(v3(0,0,0));
+      detail.lerp(new THREE.Box3().setFromObject(box).getCenter(v3(0,0,0)),.42);
+      target=target.clone().lerp(detail,cue.focus);
+    }
+  }
+  if(cue.screenX||cue.screenY){
+    const right=camera.up.clone().cross(dir).normalize();
+    const up=dir.clone().cross(right).normalize();
+    const halfHeight=result.distance*cue.zoom*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+    target=target.clone().addScaledVector(right,-halfHeight*camera.aspect*cue.screenX).addScaledVector(up,-halfHeight*cue.screenY);
+  }
+  controls.target.copy(target);
+  camera.position.copy(target).addScaledVector(dir,result.distance*cue.zoom);
+  camera.lookAt(target);
+}
+function updateShotLighting(){
+  if(mode!=='home'||reducedMotion){
+    keyLight.intensity=4.4;keyLight.position.set(3,4,-3);
+    fillLight.intensity=1;ambientLight.intensity=1.1;redRim.intensity=mode==='home'?1.8:1;
+    rearFill.intensity=2;scene.environmentIntensity=.85;
+    renderer.toneMappingExposure=.82;return;
+  }
+  const p=shot.active?shot.progress:0;
+  const sweep=shot.active?Math.sin(Math.PI*interval(p,.015,.34)):0;
+  // Keep black surfaces deep while a moving neutral key traces the metal edge.
+  keyLight.position.set(3-4.5*sweep,4+1.5*sweep,-3);
+  keyLight.intensity=5.8+2.2*sweep;
+  fillLight.intensity=.38-.14*sweep;ambientLight.intensity=.68-.2*sweep;
+  rearFill.intensity=.9-.35*sweep;scene.environmentIntensity=.7-.08*sweep;
+  redRim.intensity=2.8+1.6*sweep;
+  renderer.toneMappingExposure=.9+.04*sweep;
+}
+function finishShot(){
+  shot.running=false;controls.enabled=true;controls.enableDamping=true;updateShotUI();
+  if(shot.progress===0)resetShot(true);
+  else $('#shot-status').textContent='揭幕完成。可以拖动旋转，或进入零件探索。';
 }
 function tickShot(dt){
   if(mode!=='home'||!shot.running)return;
+  const previous=phaseAt(shot.progress);
   shot.elapsed+=dt;
   const t=Math.min(shot.elapsed/shot.duration,1);
-  shot.progress=THREE.MathUtils.lerp(shot.from,shot.goal,ease(t));
-  updateModel();positionShotCamera();updateShotUI();
-  if(t===1){shot.running=false;controls.enabled=true;updateShotUI();
-    if(shot.progress===0){shot.active=false;document.body.classList.remove('shot-active');setTimeout(()=>{if(mode==='home'&&!shot.active){resize();defaultView();}},650);}
-  }
+  shot.progress=THREE.MathUtils.lerp(shot.from,shot.goal,t);
+  updateModel();positionShotCamera();
+  if(phaseAt(shot.progress)!==previous)revealAudio.cue(phaseAt(shot.progress),shot.goal===0);
+  if(t===1)finishShot();else updateShotUI();
 }
-$('#hero-explosion').addEventListener('click',()=>startShot(1));
-$('#shot-play').addEventListener('click',()=>{if(shot.running){shot.running=false;controls.enabled=true;updateShotUI();}else startShot(Math.abs(shot.progress-shot.goal)>.001?shot.goal:(shot.progress>=.99?0:1));});
+function pauseShot(){shot.running=false;controls.enabled=shot.progress===1;revealAudio.silence();updateShotUI();}
+function seekShot(value){
+  if(!ready||mode!=='home')return;
+  activateShot();shot.progress=THREE.MathUtils.clamp(value,0,1);shot.goal=1;
+  pauseShot();updateModel();positionShotCamera();
+}
+$('#hero-explosion').addEventListener('click',()=>{startShot(1);$('#shot-play').focus({preventScroll:true});});
+$('#shot-play').addEventListener('click',()=>{
+  if(shot.running)pauseShot();else startShot(Math.abs(shot.progress-shot.goal)>.001?shot.goal:(shot.progress>=.999?0:1));
+});
 $('#shot-reverse').addEventListener('click',()=>startShot(0));
-$('#shot-range').addEventListener('input',()=>{shot.running=false;controls.enabled=true;shot.progress=Number($('#shot-range').value)/100;updateModel();positionShotCamera();updateShotUI();});
+$('#shot-range').addEventListener('input',e=>seekShot(Number(e.target.value)/100));
+$('#shot-skip').addEventListener('click',()=>{seekShot(1);finishShot();$('#shot-explore').focus({preventScroll:true});});
+$('#shot-exit').addEventListener('click',()=>resetShot(true));
+$('#shot-sound').addEventListener('click',async()=>{
+  const enabled=await revealAudio.toggle();
+  $('#shot-sound').setAttribute('aria-pressed',String(enabled));
+  $('#shot-sound').textContent=enabled?'声音 开':'声音 关';
+});
+$$('.shot-chapters button').forEach((b,i)=>b.addEventListener('click',()=>seekShot(phases[i].preview)));
+document.addEventListener('keydown',event=>{
+  if(mode!=='home'||!shot.active||event.repeat)return;
+  if(event.key==='Escape'){event.preventDefault();resetShot(true);}
+  if(event.code==='Space'&&!event.target.closest('button,input,a,textarea,select')){
+    event.preventDefault();if(shot.running)pauseShot();else startShot(shot.progress===1?0:shot.goal);
+  }
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&shot.running)pauseShot();});
 function setAppearance(m){
   const highlight=mode==='assembly'&&selected===m;
   materialsOf(m).forEach(material=>{
@@ -279,9 +391,7 @@ function updateModel(){
     m.visible=!isOmittedPart(m);
     if(mode==='home'){
       m.visible=!isReference(m);
-      m.position.addScaledVector(m.userData.explodeVector,shot.progress);
-      const pulse=Math.sin(Math.PI*shot.progress)*(1-shot.progress)*.5;
-      m.position.addScaledVector(m.userData.burstVector,pulse);
+      m.position.addScaledVector(m.userData.explodeVector,partReveal(n,f,shot.progress,idx));
     }
     if(mode==='assembly'){
       m.visible=(group==='all'||f===group)&&(!hideShell||!isShell(m))&&!isReference(m);
@@ -299,12 +409,12 @@ function updateModel(){
     setAppearance(m);
   });
   shadow.visible=mode==='home'&&shot.progress<.1;grid.visible=mode==='build';
-  redRim.intensity=mode==='home'?1.8:1;
+  updateShotLighting();
   model.updateMatrixWorld(true);
 }
 function setMode(next){
   if(!['home','assembly','build','shutter','detective'].includes(next))next='home';
-  if(next!=='home'){shot.running=false;shot.active=false;shot.progress=0;controls.enabled=true;document.body.classList.remove('shot-active');}
+  if(next!==mode||next!=='home')resetShot();
   mode=next;document.body.dataset.mode=mode;
   $$('.chapter').forEach(s=>{s.hidden=s.id!==mode;s.classList.toggle('active',s.id===mode);});
   $$('.chapter-nav button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
@@ -315,9 +425,9 @@ function setMode(next){
   clearTimeout(setMode.timer);setMode.timer=setTimeout(()=>{resize();defaultView();},550);
 }
 $$('[data-mode]').filter(b=>b.tagName==='BUTTON').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
-$('.brand').addEventListener('click',e=>{e.preventDefault();setMode('home');});
+$('.brand').addEventListener('click',e=>{e.preventDefault();resetShot();setMode('home');});
 $('#auto-rotate').addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;syncRotate();});
-$('#reset-view').addEventListener('click',()=>{if(mode==='home'&&shot.active){shot.running=false;shot.progress=0;shot.active=false;controls.enabled=true;document.body.classList.remove('shot-active');updateShotUI();updateModel();}defaultView();});
+$('#reset-view').addEventListener('click',()=>{if(mode==='home'&&shot.active){resetShot(true);return;}defaultView();});
 $('#fullscreen').addEventListener('click',async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
   catch(e){$('#fullscreen').title='当前容器不允许全屏，请在独立浏览器打开';}
@@ -432,8 +542,12 @@ function makeDetective(){
 }
 $('#detective-reset').addEventListener('click',makeDetective);
 
-function resize(){const r=viewport.getBoundingClientRect();if(!r.width||!r.height)return;const w=Math.round(r.width),h=Math.round(r.height),size=renderer.getSize(v3(0,0,0));if(size.x!==w||size.y!==h)renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-new ResizeObserver(resize).observe(viewport);window.addEventListener('resize',()=>{resize();defaultView();});
+let resizePending=true;
+function resize(){const r=viewport.getBoundingClientRect();if(!r.width||!r.height)return;const w=Math.round(r.width),h=Math.round(r.height),size=renderer.getSize(v3(0,0,0));if(size.x!==w||size.y!==h)renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(mode==='home'&&shot.active)positionShotCamera();resizePending=false;}
+// Resize inside the render frame: resizing the drawing buffer after rendering
+// leaves a transparent frame during viewport transitions or phone rotation.
+new ResizeObserver(()=>{resizePending=true;}).observe(viewport);
+window.addEventListener('resize',()=>{resizePending=true;});
 const labelElements=[];
 function updateLabels(){
   if(mode!=='shutter')return;
@@ -444,7 +558,7 @@ function updateLabels(){
   });
 }
 const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.1);if(document.hidden||mode==='detective')return;tickShot(dt);if(!shot.running)controls.update(dt);renderer.render(scene,camera);updateLabels();}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.1);if(document.hidden||mode==='detective')return;if(resizePending){resize();if(ready&&!shot.active)defaultView();}tickShot(dt);if(!shot.active||(!shot.running&&shot.progress===1))controls.update(dt);renderer.render(scene,camera);updateLabels();}
 animate();
 function fatal(e){console.error(e);$('#loading').hidden=false;$('#loading').textContent='模型加载失败。请保留 assets 文件夹并重新打开。';}
 try{
@@ -468,6 +582,6 @@ try{
       if(layerIndex(m)>=0){const el=document.createElement('span');el.className='layer-label';el.innerHTML='<i></i>Shutter '+(layerIndex(m)+1);$('#shutter-labels').append(el);labelElements.push({m,el});}
     });
     ready=true;$('#loading').hidden=true;makeCatalog();makeDetective();setMode(location.hash.slice(1)||'home');updateShotUI();
-    window.CAMID_STATE={get ready(){return ready;},get mode(){return mode;},get partCount(){return meshes.length;},get visibleParts(){return meshes.filter(m=>m.visible).map(m=>shortName(m));},get selectedPart(){return selected?shortName(selected):null;},get buildStep(){return buildStep;},get stats(){return renderer.info.render;},get shot(){return {progress:shot.progress,running:shot.running,active:shot.active,camera:camera.position.toArray(),target:controls.target.toArray()};},get logoCount(){return decorations.length;},get projections(){return meshes.filter(m=>m.visible).map(m=>{const p=new THREE.Box3().setFromObject(m).getCenter(v3(0,0,0)).project(camera);return {name:shortName(m),x:p.x,y:p.y,z:p.z};});}};
+    window.CAMID_STATE={get ready(){return ready;},get mode(){return mode;},get partCount(){return meshes.length;},get visibleParts(){return meshes.filter(m=>m.visible).map(m=>shortName(m));},get selectedPart(){return selected?shortName(selected):null;},get buildStep(){return buildStep;},get stats(){return renderer.info.render;},get shot(){return {progress:shot.progress,running:shot.running,active:shot.active,phase:phaseAt(shot.progress),sound:revealAudio.enabled,reducedMotion,camera:camera.position.toArray(),target:controls.target.toArray()};},get revealParts(){return meshes.filter(m=>!isReference(m)).map(m=>({name:shortName(m),family:family(m),amount:partReveal(shortName(m),family(m),shot.progress,layerIndex(m)),offset:m.position.distanceTo(m.userData.basePosition)}));},get logoCount(){return decorations.length;},get projections(){return meshes.filter(m=>m.visible).map(m=>{const p=new THREE.Box3().setFromObject(m).getCenter(v3(0,0,0)).project(camera);return {name:shortName(m),x:p.x,y:p.y,z:p.z};});}};
   },fatal);
 }catch(e){fatal(e);}

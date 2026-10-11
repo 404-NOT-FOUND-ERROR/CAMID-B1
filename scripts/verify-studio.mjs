@@ -60,7 +60,7 @@ for(const [key,a] of before){
 }
 assert(maxTransformError<.00002,`Transforms changed: ${maxTransformError}`);
 assert(maxBoundsError<.000002,`Bounds changed: ${maxBoundsError}`);
-for(const name of ['CAMID Charcoal Micrograin Polymer','CAMID Graphite Bead Blasted Panel','CAMID Graphite Signature Panel','CAMID Crimson Brushed Alloy','CAMID Brushed Steel']){
+for(const name of ['CAMID Charcoal Micrograin Polymer','CAMID Graphite Bead Blasted Panel','CAMID Graphite Signature Panel','CAMID Upper Graphite Fascia','CAMID Crimson Brushed Alloy','CAMID Brushed Steel','CAMID Rear Graphite Fascia','CAMID Rear Linear Grip','CAMID Side Linear Grip']){
   const m=studio.materials.find(m=>m.name===name);assert(m,name);
   assert(m.normalTexture&&m.pbrMetallicRoughness.metallicRoughnessTexture,`Missing portable texture: ${name}`);
 }
@@ -72,6 +72,17 @@ assert(glass.pbrMetallicRoughness.baseColorFactor.slice(0,3).every(v=>v>.9),'Gla
 assert(studio.images.every(image=>image.bufferView!==undefined),'External texture breaks offline loading');
 assert.equal(studio.nodes.filter(n=>n.extras?.decorative&&n.extras.logo==='CAMID').length,1);
 assert(studio.images.some(image=>image.name==='camid-wordmark'&&image.bufferView!==undefined));
+assert(studio.images.some(image=>image.name==='camid-upper-fascia'&&image.bufferView!==undefined));
+const logoNode=studio.nodes.find(n=>n.extras?.decorative&&n.extras.logo==='CAMID');
+assert.equal(logoNode.extras.inkWidth_m,.036);
+assert(studio.materials.find(m=>m.name==='CAMID printed wordmark').alphaMode==='BLEND');
+const fascia=studio.materials.find(m=>m.name==='CAMID Upper Graphite Fascia');
+assert(fascia.pbrMetallicRoughness.baseColorTexture,'Upper fascia atlas missing');
+assert(studio.meshes.some(m=>m.name.includes('PrinterCase')&&m.primitives.length===4));
+assert(studio.meshes.some(m=>m.name.startsWith('Trap 6001')&&m.primitives.length===2));
+for(const name of ['CAMID Rear Graphite Fascia','CAMID Rear Linear Grip','CAMID Side Linear Grip']){
+  const m=studio.materials.find(m=>m.name===name);assert(m.pbrMetallicRoughness.baseColorTexture,'Missing rear/side artwork: '+name);
+}
 assert(studio.meshes.some(m=>m.name.startsWith('Box 4001')&&m.primitives.length===4));
 const binaryOffset=20+studioBytes.readUInt32LE(12)+8;
 function values(index){

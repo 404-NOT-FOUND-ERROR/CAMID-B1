@@ -7,3 +7,8 @@ __pycache__/
 /blender/camera-v3-studio.glb
 /blender/camid-studio.hdr
 /blender/studio-backdrop.jpg
+
+# Local backups and diagnostic captures
+/backups/
+/screenshots/*-diagnostic.png
+/screenshots/*-failure.png

@@ -1,0 +1,43 @@
+{
+  "pauseAndStagger": true,
+  "playbackWallSeconds": 12.59,
+  "gestureAudio": true,
+  "deterministicScrubbing": true,
+  "chapterSeeking": true,
+  "reverseAndExactReset": true,
+  "mobileLayout": {
+    "viewport": {
+      "top": 227.875,
+      "bottom": 590.8125,
+      "left": 11.6875,
+      "right": 378.3125
+    },
+    "title": {
+      "top": 122,
+      "bottom": 205.09375,
+      "left": 27.296875,
+      "right": 362.703125
+    },
+    "finale": {
+      "top": 614.90625,
+      "bottom": 692.09375,
+      "left": 27.296875,
+      "right": 362.703125
+    },
+    "console": {
+      "top": 708,
+      "bottom": 825,
+      "left": 27.3046875,
+      "right": 362.6953125
+    },
+    "width": 390,
+    "innerWidth": 390
+  },
+  "chapterRegression": true,
+  "keyboardEscape": true,
+  "reducedMotion": true,
+  "offline": true,
+  "parts": 46,
+  "errors": [],
+  "passed": true
+}

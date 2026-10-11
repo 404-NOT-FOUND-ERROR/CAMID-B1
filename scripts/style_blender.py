@@ -18,6 +18,7 @@ from mathutils import Matrix, Vector
 parser = argparse.ArgumentParser()
 parser.add_argument('--output-dir', type=Path, required=True)
 parser.add_argument('--samples', type=int, default=64)
+parser.add_argument('--skip-environment', action='store_true', help='Keep existing HDR/backdrop when revising product finishes')
 args = parser.parse_args(sys.argv[sys.argv.index('--')+1:])
 root = Path(__file__).resolve().parent.parent
 out = args.output_dir.resolve()
@@ -44,9 +45,13 @@ def material(name, color, metal, roughness, coat=0):
 shell = material('CAMID Charcoal Micrograin Polymer', (.019,.021,.024), 0, .60)
 panel = material('CAMID Graphite Bead Blasted Panel', (.038,.042,.047), .42, .46)
 signature = material('CAMID Graphite Signature Panel', (1,1,1), 1, 1)
+fascia = material('CAMID Upper Graphite Fascia', (1,1,1), 1, 1)
+rear_fascia = material('CAMID Rear Graphite Fascia', (1,1,1), 1, 1)
+rear_grip = material('CAMID Rear Linear Grip', (1,1,1), 1, 1)
+side_grip = material('CAMID Side Linear Grip', (1,1,1), 1, 1)
 trim = material('CAMID Satin Graphite Edge', (.013,.015,.018), .45, .34)
 graphite = material('CAMID Graphite Support', (.022,.025,.030), .30, .50)
-red = material('CAMID Crimson Brushed Alloy', (.32,.027,.033), .68, .43, .04)
+red = material('CAMID Crimson Brushed Alloy', (.25,.020,.026), .82, .31, .04)
 steel = material('CAMID Brushed Steel', (.32,.35,.38), .92, .32)
 film = material('CAMID Film Black', (.003,.004,.005), 0, .58)
 glass = material('CAMID Neutral Optical Glass', (.96,.975,.99), 0, .035)
@@ -92,16 +97,45 @@ def finish_maps(mat, field, roughness, metal, slope, tile):
     norm=nodes.new('ShaderNodeNormalMap');links.new(tex.outputs['Color'],norm.inputs['Color']);links.new(norm.outputs['Normal'],bsdf.inputs['Normal'])
     mat['finishTile_m']=tile;mat['surface']='packed roughness and tangent normal maps; original CAD normals retained'
 
-finish_maps(shell,grain,.60,0,.14,.012)
-finish_maps(panel,grain,.46,.42,.08,.010)
-finish_maps(red,brush,.43,.68,.025,.012)
+finish_maps(shell,grain,.58,0,.09,.010)
+finish_maps(panel,grain,.41,.48,.055,.010)
+finish_maps(red,brush,.31,.82,.018,.012)
 finish_maps(steel,brush,.32,.92,.02,.012)
+
+# An authored, flat color atlas gives the broad upper shell a quiet product code,
+# graphite inset and satin strip. All divisions remain surface finishes on CAD.
+fascia_bounds=((-0.052979916,0.066620082),(-0.080440328,-0.030060671))
+def fascia_maps():
+    width,height=1280,512
+    x=np.linspace(*fascia_bounds[0],width)[None,:]
+    y=np.linspace(fascia_bounds[1][1],fascia_bounds[1][0],height)[:,None]
+    samples=grain[np.floor(y/.010*size).astype(int)%size,np.floor(x/.010*size).astype(int)%size]
+    u=np.linspace(0,1,width)[None,:];v=np.linspace(0,1,height)[:,None]
+    inset=((u>.027)&(u<.973)&(v>.07)&(v<.93)).astype(float)
+    band=inset*(v<.15)
+    orm=image_map('CAMID upper fascia finish ORM',np.stack((np.ones_like(samples),.59-.14*inset-.10*band+samples*.018,.28*inset+.22*band),axis=2))
+    field=samples*.07
+    dx=np.roll(field,-1,1)-np.roll(field,1,1);dy=np.roll(field,-1,0)-np.roll(field,1,0)
+    normals=np.stack((-dx,-dy,np.ones_like(field)),axis=2);normals/=np.linalg.norm(normals,axis=2,keepdims=True)
+    normal=image_map('CAMID upper fascia micrograin normal',normals*.5+.5)
+    base=bpy.data.images.load(str(root/'assets/branding/camid-upper-fascia.png'));base.pack()
+    nodes,links=fascia.node_tree.nodes,fascia.node_tree.links;bsdf=nodes.get('Principled BSDF')
+    for img,target in [(base,'Base Color'),(orm,None),(normal,'Normal')]:
+        tex=nodes.new('ShaderNodeTexImage');tex.image=img;tex.extension='EXTEND'
+        if target=='Base Color':links.new(tex.outputs['Color'],bsdf.inputs[target])
+        elif target=='Normal':
+            n=nodes.new('ShaderNodeNormalMap');links.new(tex.outputs['Color'],n.inputs['Color']);links.new(n.outputs['Normal'],bsdf.inputs['Normal'])
+        else:
+            split=nodes.new('ShaderNodeSeparateRGB');links.new(tex.outputs['Color'],split.inputs['Image'])
+            links.new(split.outputs['G'],bsdf.inputs['Roughness']);links.new(split.outputs['B'],bsdf.inputs['Metallic'])
+    fascia['surface']='Graphite inset, satin strip, low contrast B1 product code; original CAD surface'
+fascia_maps()
 
 # The reference has a bounded graphite finish around CAMID, within the same CAD face.
 # A non-repeating physical-coordinate mask keeps the boundary crisp without adding
 # a floating plate, changing the shell shape, or cutting up the source triangles.
 signature_bounds = ((-.020,.064),(.018,.071))  # STEP world Y/Z in metres
-signature_rectangle = ((.010,.057),(.024,.064))
+signature_rectangle = ((.004,.060),(.024,.065))
 def signature_maps():
     res=1024
     y=np.linspace(*signature_bounds[0],res)[None,:]
@@ -114,7 +148,7 @@ def signature_maps():
     mask=np.clip(.5-distance/.00009,0,1)
     edge=np.exp(-((distance+.00007)/.000065)**2)*mask
     samples=grain[(np.floor(z/.010*size).astype(int)%size), (np.floor(y/.010*size).astype(int)%size)]
-    outer=np.array([.019,.021,.024]);inside=np.array([.066,.071,.077])
+    outer=np.array([.019,.021,.024]);inside=np.array([.057,.061,.066])
     color=outer+(inside-outer)*mask[:,:,None]
     color*=1+samples[:,:,None]*.025
     color*=1-edge[:,:,None]*.32
@@ -123,7 +157,7 @@ def signature_maps():
     base=image_map('CAMID signature bounded graphite color',srgb)
     base.colorspace_settings.name='sRGB';base.reload();base.pack()
     orm=image_map('CAMID signature finish ORM',np.stack((np.ones_like(mask),.62-.16*mask+samples*.025,.44*mask),axis=2))
-    field=samples*(.13-.075*mask)
+    field=samples*(.09-.045*mask)
     dx=np.roll(field,-1,1)-np.roll(field,1,1)
     dy=np.roll(field,-1,0)-np.roll(field,1,0)
     normal=np.stack((-dx,-dy,np.ones_like(mask)),axis=2)
@@ -142,6 +176,46 @@ def signature_maps():
     signature['rectangleWorldYZ_m']=[list(b) for b in signature_rectangle]
 signature_maps()
 
+def flat_finish_maps(mat, artwork, width, height, ribs=0):
+    """Keep generated flat artwork intact; add portable physical finish maps."""
+    u=np.linspace(0,1,width)[None,:];v=np.linspace(0,1,height)[:,None]
+    samples=grain[np.floor(v*size*11).astype(int)%size,np.floor(u*size*5).astype(int)%size]
+    grip=((u>.09)&(u<.91)&(v>.17)&(v<.95)).astype(float) if ribs else np.zeros_like(samples)
+    # Directional normal detail is very shallow; it never changes the CAD mesh.
+    field=samples*.035+grip*.08*np.sin(v*math.pi*2*ribs)
+    dx=np.roll(field,-1,1)-np.roll(field,1,1)
+    dy=np.roll(field,-1,0)-np.roll(field,1,0)
+    normals=np.stack((-dx,-dy,np.ones_like(field)),axis=2)
+    normals/=np.linalg.norm(normals,axis=2,keepdims=True)
+    normal=image_map(mat.name+' microtexture normal',normals*.5+.5)
+    orm=image_map(mat.name+' finish ORM',np.stack((np.ones_like(samples),.56-.065*grip+samples*.012,.16+.08*(1-grip)),axis=2))
+    base=bpy.data.images.load(str(root/'assets/branding/finish-v4'/artwork))
+    base.pixels[0]  # Blender 3.1 lazily loads file images; read before changing the path.
+    # Keep the generated PNG masters. These opaque color atlases can travel as
+    # JPEG in the GLB; normal and ORM maps retain lossless PNG encoding.
+    base.file_format='JPEG';base.filepath_raw=str(texture_dir/(Path(artwork).stem+'.jpg'))
+    base.save();base.reload();base.pack()
+    nodes,links=mat.node_tree.nodes,mat.node_tree.links;bsdf=nodes.get('Principled BSDF')
+    for img,target in [(base,'Base Color'),(normal,'Normal'),(orm,None)]:
+        tex=nodes.new('ShaderNodeTexImage');tex.image=img;tex.extension='EXTEND'
+        if target=='Base Color':links.new(tex.outputs['Color'],bsdf.inputs[target])
+        elif target=='Normal':
+            norm=nodes.new('ShaderNodeNormalMap');links.new(tex.outputs['Color'],norm.inputs['Color']);links.new(norm.outputs['Normal'],bsdf.inputs['Normal'])
+        else:
+            split=nodes.new('ShaderNodeSeparateRGB');links.new(tex.outputs['Color'],split.inputs['Image'])
+            links.new(split.outputs['G'],bsdf.inputs['Roughness']);links.new(split.outputs['B'],bsdf.inputs['Metallic'])
+    mat['surface']='Nonrepeating generated finish artwork; shallow linear grain, packed ORM/normal; unchanged CAD face'
+
+flat_finish_maps(rear_fascia,'camid-rear-fascia.png',1024,448)
+flat_finish_maps(rear_grip,'camid-rear-grip.png',512,768,110)
+flat_finish_maps(side_grip,'camid-side-grip.png',448,1024,70)
+
+def projection_bounds(obj,material,axes):
+    points=[obj.matrix_world@obj.data.vertices[i].co for face in obj.data.polygons
+            if obj.data.materials[face.material_index]==material for i in face.vertices]
+    assert points,'No exterior faces for '+material.name
+    return [(min(p[axis] for p in points),max(p[axis] for p in points)) for axis in axes]
+
 glass_obj = next(o for o in mesh_objects if o.get('path').endswith('/Glass'))
 lens_points = [glass_obj.matrix_world @ Vector(v) for v in glass_obj.bound_box]
 lens_center = sum(lens_points, Vector())/8
@@ -158,6 +232,28 @@ for o in mesh_objects:
     elif 'film' in n: m = film
     else: m = shell
     o.data.materials.clear(); o.data.materials.append(m)
+    if 'printercase' in n:
+        o.data.materials.append(fascia);o.data.materials.append(trim);o.data.materials.append(rear_fascia)
+        for p in o.data.polygons:
+            c=o.matrix_world@p.center;normal=(o.matrix_world.to_3x3()@p.normal).normalized()
+            if normal.z>.9999 and c.z>.026:p.material_index=1
+            elif normal.y<-.9999:p.material_index=2
+            elif normal.z<-.9999 and -.0186<c.z<-.0183:p.material_index=3
+        o['rearFasciaXY_m']=projection_bounds(o,rear_fascia,[0,1])
+    if 'tank case^tank case' in n:
+        o.data.materials.append(panel);o.data.materials.append(trim);o.data.materials.append(side_grip)
+        for p in o.data.polygons:
+            c=o.matrix_world@p.center;normal=(o.matrix_world.to_3x3()@p.normal).normalized()
+            if abs(normal.x)>.9999 and (c.x<-.0388 or c.x>.0745):p.material_index=3
+            elif abs(normal.x)>.9999:p.material_index=1
+            elif normal.y>.9999:p.material_index=2
+        o['sideGripZY_m']=projection_bounds(o,side_grip,[2,1])
+    if 'trap 6001' in n:
+        o.data.materials.append(rear_grip)
+        for p in o.data.polygons:
+            c=o.matrix_world@p.center;normal=(o.matrix_world.to_3x3()@p.normal).normalized()
+            if normal.z<-.9999 and c.z<-.0249:p.material_index=1
+        o['rearGripXY_m']=projection_bounds(o,rear_grip,[0,1])
     if 'box 4001' in n:
         o.data.materials.append(red);o.data.materials.append(signature);o.data.materials.append(trim)
         # The actual lens collar is integrated in Box 4001, not a separate invented ring.
@@ -180,9 +276,21 @@ for o in mesh_objects:
         tile=o.data.materials[p.material_index].get('finishTile_m',.012)
         for loop_index in p.loop_indices:
             v=o.matrix_world@o.data.vertices[o.data.loops[loop_index].vertex_index].co
-            if o.data.materials[p.material_index]==signature:
+            if o.data.materials[p.material_index]==fascia:
+                uv.data[loop_index].uv=((fascia_bounds[0][1]-v.x)/(fascia_bounds[0][1]-fascia_bounds[0][0]),
+                                        (fascia_bounds[1][1]-v.y)/(fascia_bounds[1][1]-fascia_bounds[1][0]))
+            elif o.data.materials[p.material_index]==signature:
                 uv.data[loop_index].uv=((v.y-signature_bounds[0][0])/(signature_bounds[0][1]-signature_bounds[0][0]),
                                         (v.z-signature_bounds[1][0])/(signature_bounds[1][1]-signature_bounds[1][0]))
+            elif o.data.materials[p.material_index] in [rear_fascia,rear_grip]:
+                bounds=o['rearFasciaXY_m'] if o.data.materials[p.material_index]==rear_fascia else o['rearGripXY_m']
+                uv.data[loop_index].uv=((v.x-bounds[0][0])/(bounds[0][1]-bounds[0][0]),
+                                        (bounds[1][1]-v.y)/(bounds[1][1]-bounds[1][0]))
+            elif o.data.materials[p.material_index]==side_grip:
+                bounds=o['sideGripZY_m']
+                u=(v.z-bounds[0][0])/(bounds[0][1]-bounds[0][0])
+                uv.data[loop_index].uv=(1-u if normal.x<0 else u,
+                                        (bounds[1][1]-v.y)/(bounds[1][1]-bounds[1][0]))
             else:
                 uv.data[loop_index].uv=(v[axes[0]]/tile,v[axes[1]]/tile)
     o['finish'] = m.name
@@ -195,44 +303,34 @@ for o in mesh_objects:
 # Add the real product mark as a surface decal on the existing shutter box.
 # It is decorative metadata, so the web viewer renders it without counting it as a new CAD part.
 box_obj = next(o for o in mesh_objects if 'box 4001' in o.get('path','').lower())
-bpy.ops.object.text_add(location=(.04040, .034, .043))
-logo = bpy.context.object; logo.name='CAMID logo decal'; logo.data.body='CAMID'; logo.data.align_x='CENTER'; logo.data.align_y='CENTER'
-logo.rotation_euler = Matrix(((0,-.069756,.997564),(1,0,0),(0,.997564,.069756))).to_euler()
-logo.data.font=bpy.data.fonts.load(str(root/'assets/fonts/ChakraPetch-SemiBold.ttf'))
-logo.data.size=.008; logo.data.extrude=0; logo.data.bevel_depth=0
-logo.data.materials.append(logo_gold); logo['decorative']=True; logo['logo']='CAMID'
-logo.parent=box_obj; logo.matrix_parent_inverse=box_obj.matrix_world.inverted()
-bpy.context.view_layer.objects.active=logo; logo.select_set(True); bpy.ops.object.convert(target='MESH'); logo.select_set(False)
-bpy.context.view_layer.update()
-logo_matrix = logo.matrix_world.copy()
-# Rasterize the reference wordmark locally and embed its transparent image in GLB.
 main_scene = bpy.context.scene
-mark_scene = bpy.data.scenes.new('CAMID decal artwork')
-mark = bpy.data.objects.new('CAMID artwork', logo.data.copy());mark_scene.collection.objects.link(mark)
-ink = bpy.data.materials.new('CAMID decal ink');ink.use_nodes=True
-ink.node_tree.nodes.clear();em=ink.node_tree.nodes.new('ShaderNodeEmission');em.inputs['Color'].default_value=(.42,.025,.033,1)
-output=ink.node_tree.nodes.new('ShaderNodeOutputMaterial');ink.node_tree.links.new(em.outputs[0],output.inputs['Surface'])
-mark.data.materials.clear();mark.data.materials.append(ink)
-mark_cam_data=bpy.data.cameras.new('Wordmark artwork camera');mark_cam=bpy.data.objects.new('Wordmark artwork camera',mark_cam_data)
-mark_scene.collection.objects.link(mark_cam);mark_cam.location=(0,0,1);mark_cam_data.type='ORTHO';mark_cam_data.ortho_scale=.027
-mark_scene.camera=mark_cam;mark_scene.render.engine='BLENDER_EEVEE';mark_scene.render.film_transparent=True
-mark_scene.render.resolution_x=1024;mark_scene.render.resolution_y=256;mark_scene.render.resolution_percentage=100
-mark_scene.view_settings.view_transform='Standard';mark_scene.view_settings.look='None'
-mark_scene.render.image_settings.file_format='PNG';mark_scene.render.image_settings.color_mode='RGBA'
-mark_scene.render.filepath=str(out/'camid-wordmark.png');bpy.ops.render.render(write_still=True,scene=mark_scene.name)
-bpy.context.window.scene=main_scene
-bpy.data.objects.remove(logo,do_unlink=True)
-decal_mesh=bpy.data.meshes.new('CAMID surface UV');decal_mesh.from_pydata([(-.0135,-.003375,0),(.0135,-.003375,0),(.0135,.003375,0),(-.0135,.003375,0)],[],[(0,1,2,3)])
+# Use the reference-derived thick condensed artwork, preserving its source pixels.
+# Crop only the decal UV coordinates to fit a physical 36 mm visible ink width.
+import shutil
+shutil.copy2(root/'assets/branding/camid-wordmark-reference.png',out/'camid-wordmark.png')
+wordmark=bpy.data.images.load(str(out/'camid-wordmark.png'));wordmark.name='camid-wordmark';wordmark.pack()
+w,h=wordmark.size
+alpha=np.array(wordmark.pixels[:],dtype=np.float32).reshape(h,w,4)[:,:,3]
+yy,xx=np.where(alpha>.15)
+assert len(xx)>0,'Wordmark artwork must have visible alpha'
+assert (alpha<.01).sum()>w*h*.15,'Wordmark must have a transparent background'
+u0,u1=max(0,xx.min()-2)/w,min(w,xx.max()+3)/w
+v0,v1=max(0,yy.min()-2)/h,min(h,yy.max()+3)/h
+half_width=.018;half_height=half_width*(v1-v0)*h/((u1-u0)*w)
+decal_mesh=bpy.data.meshes.new('CAMID surface UV');decal_mesh.from_pydata([(-half_width,-half_height,0),(half_width,-half_height,0),(half_width,half_height,0),(-half_width,half_height,0)],[],[(0,1,2,3)])
 uv=decal_mesh.uv_layers.new(name='CAMID UV')
-for loop,coord in zip(uv.data,[(0,0),(1,0),(1,1),(0,1)]):loop.uv=coord
+for loop,coord in zip(uv.data,[(u0,v0),(u1,v0),(u1,v1),(u0,v1)]):loop.uv=coord
 logo=bpy.data.objects.new('CAMID logo decal',decal_mesh);main_scene.collection.objects.link(logo)
-logo.parent=box_obj;logo.matrix_world=logo_matrix;logo['decorative']=True;logo['logo']='CAMID'
+rotation=Matrix(((0,-.069756,.997564),(1,0,0),(0,.997564,.069756))).to_4x4()
+rotation.translation=Vector((.04040+(.043-.039)*.069756/.997564+.000015,.033,.039))
+logo.parent=box_obj;logo.matrix_world=rotation;logo['decorative']=True;logo['logo']='CAMID'
+logo['artwork']='Reference reconstruction from user rendering; not an original vector master'
+logo['inkWidth_m']=.036
 decal_mat=bpy.data.materials.new('CAMID printed wordmark');decal_mat.use_nodes=True;decal_mat.blend_method='BLEND';decal_mat.use_screen_refraction=False
-tex=decal_mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=bpy.data.images.load(str(out/'camid-wordmark.png'));tex.image.pack()
-bsdf=decal_mat.node_tree.nodes.get('Principled BSDF');bsdf.inputs['Roughness'].default_value=.45
+tex=decal_mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=wordmark;tex.extension='EXTEND'
+bsdf=decal_mat.node_tree.nodes.get('Principled BSDF');bsdf.inputs['Roughness'].default_value=.57
 decal_mat.node_tree.links.new(tex.outputs['Color'],bsdf.inputs['Base Color']);decal_mat.node_tree.links.new(tex.outputs['Alpha'],bsdf.inputs['Alpha'])
 decal_mesh.materials.append(decal_mat)
-bpy.data.scenes.remove(mark_scene)
 
 # Export only CAD objects plus the marked logo before applying the render-stage orientation.
 for o in product: o.select_set(True)
@@ -288,6 +386,28 @@ scene['materials'] = 'Charcoal micrograin polymer, bead-blasted panel, brushed c
 scene.render.film_transparent=False
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'CAMID-B1-studio.blend'))
 bpy.ops.render.render(write_still=True)
+# A second proof records the actual Blender material/wordmark placement.
+saved_camera=cam.matrix_world.copy();saved_lens=cam.data.lens
+cam.location=(.17,.20,.045);aim(cam,(.033,.038,-.026));cam.data.lens=82
+scene.render.resolution_x=1600;scene.render.resolution_y=1200
+scene.render.filepath=str(out/'camid-signature-closeup.png');bpy.ops.render.render(write_still=True)
+cam.matrix_world=saved_camera;cam.data.lens=saved_lens
+# Proofs of the same surfaces viewed from the previously blank directions.
+data=bpy.data.lights.new('Rear proof - neutral softbox','AREA');data.energy=4;data.shape='DISK';data.size=.28
+rear_light=bpy.data.objects.new(data.name,data);studio.objects.link(rear_light);rear_light.location=(.12,-.32,.22);aim(rear_light,target)
+points=[o.matrix_world@Vector(v) for o in mesh_objects if not o.hide_render for v in o.bound_box]
+proof_center=Vector([(min(p[i] for p in points)+max(p[i] for p in points))/2 for i in range(3)])
+cam.data.type='ORTHO';cam.data.ortho_scale=.235
+scene.render.resolution_x=1200;scene.render.resolution_y=1200
+for proof,direction in [('camid-rear-finish',(.65,-1.8,.55)),('camid-side-finish',(-1.8,.45,.35))]:
+    cam.location=proof_center+Vector(direction).normalized()*.45;aim(cam,proof_center)
+    scene.render.filepath=str(out/(proof+'.png'));bpy.ops.render.render(write_still=True)
+cam.data.type='PERSP';cam.matrix_world=saved_camera;cam.data.lens=saved_lens
+rear_light.hide_render=True
+(out/'studio-materials.json').write_text(json.dumps({'blender':bpy.app.version_string,'parts':authored,'lights':lights,'wordmark':'User rendering reconstruction; thick condensed dark crimson, 36 mm ink width','fascia':'Graphite / satin upper shell atlas with B1 product code','rearSideFinishes':'Rear CAMID B1 fascia, horizontal-grain rear cover, linear side grip with crimson stripe and B1 identifier; generated flat color maps with portable ORM and tangent normals'},indent=2),encoding='utf-8')
+if args.skip_environment:
+    print('CAMID STUDIO FINISH UPDATE COMPLETE',out)
+    sys.exit(0)
 # Empty studio backdrop keeps the live CAD model as the only product image.
 for o in mesh_objects + [logo]: o.hide_render = True
 scene.cycles.samples=32;scene.render.resolution_x=1920;scene.render.resolution_y=1080
@@ -311,5 +431,4 @@ cam.location=target; cam.rotation_euler=(math.pi/2,0,0); cam.data.type='PANO'; c
 scene.cycles.samples=16; scene.render.resolution_x=1024; scene.render.resolution_y=512
 scene.render.image_settings.file_format='HDR'; scene.render.filepath=str(out/'camid-studio.hdr')
 bpy.ops.render.render(write_still=True)
-(out/'studio-materials.json').write_text(json.dumps({'blender':bpy.app.version_string,'parts':authored,'lights':lights},indent=2),encoding='utf-8')
 print('CAMID STUDIO COMPLETE', out)

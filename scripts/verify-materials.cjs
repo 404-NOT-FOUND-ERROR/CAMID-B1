@@ -8,7 +8,7 @@ const {chromium}=createRequire(process.execPath)('playwright');
 const root=path.resolve(__dirname,'..');
 (async()=>{
  const src=await fs.readFile(path.join(root,'src/app.js'),'utf8');
- const bundled=await build({stdin:{contents:src+'\nwindow.__materials={meshes,camera,controls,fit,v3,THREE,renderer,scene};',resolveDir:root,loader:'js'},bundle:true,format:'iife',write:false});
+ const bundled=await build({stdin:{contents:src+'\nwindow.__materials={meshes,camera,controls,fit,v3,THREE,renderer,scene};',resolveDir:path.join(root,'src'),loader:'js'},bundle:true,format:'iife',write:false});
  const browser=await chromium.launch({headless:true,executablePath:process.env.CAMID_BROWSER||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
  try{
   const errors=[];const page=await browser.newPage({viewport:{width:1440,height:900}});
@@ -24,8 +24,9 @@ const root=path.resolve(__dirname,'..');
    const glass=mat.find(m=>m.name==='CAMID Neutral Optical Glass');
    return {parts:d.meshes.length,zones:box.material.length,textures:textures.map(m=>({name:m.name,width:m.normalMap.image.width,height:m.normalMap.image.height,roughness:!!m.roughnessMap})),glass:{color:glass.color.toArray(),transmission:glass.transmission,iridescence:glass.iridescence,attenuation:glass.attenuationColor.toArray()}};
   });
-  assert.equal(surface.parts,46);assert.equal(surface.zones,4);assert.equal(surface.textures.length,5);
-  assert(surface.textures.every(t=>t.width===(t.name==='CAMID Graphite Signature Panel'?1024:512)&&t.height===t.width&&t.roughness));
+  assert.equal(surface.parts,46);assert.equal(surface.zones,4);assert.equal(surface.textures.length,9);
+  const sizes={'CAMID Graphite Signature Panel':[1024,1024],'CAMID Upper Graphite Fascia':[1280,512],'CAMID Rear Graphite Fascia':[1024,448],'CAMID Rear Linear Grip':[512,768],'CAMID Side Linear Grip':[448,1024]};
+  assert(surface.textures.every(t=>t.width===(sizes[t.name]?.[0]||512)&&t.height===(sizes[t.name]?.[1]||512)&&t.roughness));
   assert(surface.glass.color.every(c=>c>.9));assert(surface.glass.transmission>.9);assert.equal(surface.glass.iridescence,0);
   await page.setViewportSize({width:1400,height:1100});
   await page.addStyleTag({content:'#viewport{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important}.topbar,.chapter-nav,.hero-copy,.hero-caption,.hero-index,.hero-watermark,#model-tools,.corner-note,.hero-bottom,.shot-controls{display:none!important}'});

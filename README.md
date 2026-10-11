@@ -4,9 +4,13 @@ CAMID B1 是一台基于真实装配结构设计的纯机械拍立得。本项�
 
 页面运行时不依赖在线资源。Three.js、应用脚本和 CAD 模型都在本地，适合独立运行和打包；修改源码时需要安装构建依赖。
 
+2026-10-11 材质更新：按设计者渲染参考重建厚重、紧凑的暗红 CAMID 字标，并扩大到 36 mm 可见宽度；上壳新增石墨饰面、缎面细带与低对比 B1 标识。片仓侧面和边缘补充分区，镜头环使用更清晰的暗红拉丝反射。原始 46 个零件实例及 CAD 几何保持不变。生成图素材与提示词保存在 `assets/branding/`；字标是参考重建，尚非原始矢量品牌文件。
+
+同日背面与侧面更新：先以真实 CAD 对应视角生成两张材质效果图，再生成三张平面颜色贴图。上壳背面加入 CAMID B1 铭文与细边界，原 Trap 后盖加入横向细纹和低对比 B1 铭文，Tank 两侧加入线性纹理、暗红线和 B1 型号标识。三处使用各自原有外表面 UV，零件展开时贴图随本体移动。页面增加中性侧背光，让暗色纹理可读；原相机几何、正面 CAMID 字标和 12 秒揭幕保持原有结构。效果图、准确提示词与来源在 `references/finish-v4/`，PNG 贴图原稿在 `assets/branding/finish-v4/`。
+
 ## Blender 材质与棚灯
 
-产品视觉使用真实 CAD 网格在 Blender 3.1 中生成。`scripts/style_blender.py` 导入 `assets/camera-v3.glb`，按零件路径分配炭灰细颗粒壳体、石墨喷砂面板、红色拉丝金属、钢制传动件和中性透明玻璃，保留原始 STEP 的分面法线，并用 Cycles 生成可编辑工程、证明图、空棚背景与本地 HDR 反射环境。`Box 4001` 的壳体、镜头环、标识侧面和边缘使用四个材质区。CAMID 区域按参考重做有明确矩形边界的石墨面板，独立控制颜色、金属度、粗糙度与细纹理；分界绘在原始 CAD 表面，保留几何、零件身份和爆开关系。十一张表面贴图及 CAMID 透明贴图均嵌入 GLB，离线仍可显示；标识随外壳一起运动，不计入 CAD 零件数。
+产品视觉使用真实 CAD 网格在 Blender 3.1 中生成。`scripts/style_blender.py` 导入 `assets/camera-v3.glb`，按零件路径分配炭灰细颗粒壳体、石墨喷砂面板、红色拉丝金属、钢制传动件和中性透明玻璃，保留原始 STEP 的分面法线，并用 Cycles 生成可编辑工程、证明图、空棚背景与本地 HDR 反射环境。`Box 4001` 的壳体、镜头环、标识侧面和边缘使用四个材质区。CAMID 区域按参考重做有明确矩形边界的石墨面板，独立控制颜色、金属度、粗糙度与细纹理；分界绘在原始 CAD 表面，保留几何、零件身份和爆开关系。二十三张表面贴图及 CAMID 透明贴图均嵌入 GLB，离线仍可显示；标识随外壳一起运动，不计入 CAD 零件数。新增三张不透明颜色贴图在 GLB 内使用 JPEG，PNG 原稿保留；法线与 ORM 参数图保持无损 PNG。
 
 生成 Blender 资产：
 
@@ -32,7 +36,7 @@ python -m http.server 4173
 
 ## 互动内容
 
-- **整机 / 一镜爆开**：从当前整机视角连续拉远、绕行并斜向展开真实零件。支持暂停、继续、进度拖动和反向合回，末尾可旋转观察。
+- **整机 / 12 秒揭幕**：材质近景与灯光扫过 → 整机亮相 → 外壳先退 → 辊轴、齿轮与快门片依次展开 → 爆炸构图落定。支持暂停、继续、拖动时间轴、点击阶段定位、倒放合回、跳至全貌、Esc 退出及机械音效开关；结尾可以旋转观察并进入零件地图。默认静音，开启声音后才创建音频。
 - **拆解**：按 `Printer`、`Shutter`、`Tank` 分组浏览真实零件，搜索、选中、单独观察并展开装配。
 - **装回去**：依据 A4-5/A4-6 Printer 装配说明逐步显示支承件、方辊、三类齿轮、圆辊、出口件、锁件、外壳和曲柄。
 - **快门叠层**：分开观察 CAD 中的 `Shutter 1/2/3`，对应 A4-8/A4-9 的叠层顺序；不把叠层动画冒充真实曝光时序。
@@ -80,9 +84,9 @@ STEP 保留了零件几何与静态装配位置，没有提供 SolidWorks mates�
 
 ## 页面截图
 
-![Reference-aligned charcoal crimson interface](screenshots/20-reference-home.png)
+![Reference-aligned charcoal crimson interface](screenshots/25-material-v3-home.png)
 
-![Bounded CAMID signature panel](screenshots/22-signature-panel-closeup.png)
+![Bounded CAMID signature panel](screenshots/26-material-v3-signature.png)
 
 ![Unified assembly interface](screenshots/21-reference-assembly.png)
 
@@ -158,8 +162,16 @@ node scripts/verify-assembly.mjs
 node scripts/verify-reference.cjs
 $env:CAMID_PORT='4173'
 node scripts/verify-shot.cjs
+$env:CAMID_URL='http://127.0.0.1:4173/#home'
+node scripts/verify-reveal.cjs
+node scripts/verify-reveal-impact.cjs
+node scripts/verify-rear-side.cjs
 ```
 
-镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。当前版本已验证桌面与 390 × 844 手机端的爆开、暂停/继续、反向合回、返回首页、窗口尺寸变化和 `file://` 离线加载。几何检查覆盖 46 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖及上方孔位的内侧手柄。装配检查直接核对实际网格上的孔边、手柄定位点与接触面。
+镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。揭幕验证覆盖 1440 × 900、1024 × 768、390 × 844、360 × 640 与 844 × 390，以及暂停/继续、错峰展开、确定性拖动、阶段定位、倒放归零、声音开关、章节切换、减少动态效果与 `file://` 离线打开。截图前同时检查 WebGL 仍有可见像素，避免画布尺寸变化后出现透明帧。结果保存在 `screenshots/reveal/validation.json`。几何检查覆盖 46 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖及上方孔位的内侧手柄。装配检查直接核对实际网格上的孔边、手柄定位点与接触面。
 
-`node scripts/verify-materials.cjs` 检查五种带贴图的真实 WebGL 材质、壳体四个材质区、CAMID 边界贴图、玻璃中性透射及离线贴图解码，并通过关闭法线和边界贴图后的像素对比确认两者参与渲染。`node scripts/verify-reference.cjs` 检查全章节风格、手机宽度及离线字体，生成整机与标识区近照。
+揭幕的阶段、零件位移采样与镜头关键帧位于 `src/reveal-timeline.js`，音效位于 `src/reveal-audio.js`，首页样式覆盖位于 `assets/reveal.css`。所有动作由同一时间进度确定，反向与拖动不会积累位置误差。后台标签页自动暂停；开启系统“减少动态效果”时，使用约 1.6 秒的固定方向展开，不进行近景推进、绕行及灯光扫过。
+
+2026-10-11 运镜修订扩大了首屏模型与揭幕画布，开场推到镜头环 / CAMID 铭牌的大特写，再拉远到完整相机。通过压低环境补光、强化移动中性主光与红色轮廓增加材质反差；其他探索章节恢复原观察光。`verify-reveal-impact.cjs` 将当前页面与 `references/reveal-impact/baseline` 中的修改前镜头比较，验证放大比例、近裁切安全距离、全路径可见像素、拖动后光影和构图一致、手机特写及章节灯光恢复，结果与前后对照图在 `screenshots/reveal-impact`。可用 `CAMID_BASELINE` 指定另一份基线目录。
+
+`node scripts/verify-materials.cjs` 检查九种带贴图的真实 WebGL 材质、壳体四个材质区、CAMID 边界贴图、玻璃中性透射及离线贴图解码，并通过关闭法线和边界贴图后的像素对比确认两者参与渲染。`node scripts/verify-reference.cjs` 检查全章节风格、手机宽度及离线字体，生成整机与标识区近照。`node scripts/verify-rear-side.cjs` 检查三处新增平面颜色贴图、法线和 ORM 的解码、0–1 UV 范围、ClampToEdgeWrapping、背面与侧面的像素效果以及揭幕时的零件绑定，输出 `screenshots/finish-v4/` 与 `references/finish-v4/validation.json`。

@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "parts": 46,
+  "baseArtworkAffectsRearAndSidePixels": true,
+  "clampedUV": true,
+  "attachedDuringReveal": true,
+  "surfaces": [
+    {
+      "name": "CAMID Rear Graphite Fascia",
+      "part": "/Camera V3/Printer - FullAssembly/4000 - Case - PrinterCase",
+      "base": [
+        1916,
+        821
+      ],
+      "normal": true,
+      "orm": true,
+      "clamped": true,
+      "uv": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "zones": 4
+    },
+    {
+      "name": "CAMID Rear Linear Grip",
+      "part": "/Camera V3/Tank case 7003^Camera V3_Défaut/Trap 6001_Défaut",
+      "base": [
+        1024,
+        1536
+      ],
+      "normal": true,
+      "orm": true,
+      "clamped": true,
+      "uv": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "zones": 2
+    },
+    {
+      "name": "CAMID Side Linear Grip",
+      "part": "/Camera V3/Tank case 7003^Camera V3_Défaut/Tank case^Tank case 7003_Camera V3_Défaut",
+      "base": [
+        814,
+        1933
+      ],
+      "normal": true,
+      "orm": true,
+      "clamped": true,
+      "uv": [
+        0,
+        1,
+        0,
+        1
+      ],
+      "zones": 4
+    }
+  ],
+  "errors": []
+}
