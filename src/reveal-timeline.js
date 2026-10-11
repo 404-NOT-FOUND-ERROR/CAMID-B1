@@ -23,26 +23,52 @@ export function partReveal(name, family, t, layer = -1) {
   return family === 'Tank' ? interval(t,.43,.71) : interval(t,.50,.78);
 }
 
-// Camera poses interpolate with zero velocity at each editorial beat.
+// Shape-preserving Hermite interpolation carries velocity through the flight.
+// Only the opening push and the final landing come to rest.
+function flightSample(keys,t,value){
+  const index=Math.max(0,keys.findLastIndex(k=>t>=k.at));
+  const end=Math.min(index+1,keys.length-1);
+  if(index===end)return value(keys[index]);
+  const slope=i=>{
+    if(i===0||i===keys.length-1)return 0;
+    const a=keys[i-1],b=keys[i],c=keys[i+1];
+    const h0=b.at-a.at,h1=c.at-b.at;
+    const d0=(value(b)-value(a))/h0,d1=(value(c)-value(b))/h1;
+    if(d0*d1<=0)return 0;
+    const w0=2*h1+h0,w1=h1+2*h0;
+    return (w0+w1)/(w0/d0+w1/d1);
+  };
+  const a=keys[index],b=keys[end],span=b.at-a.at;
+  const u=Math.max(0,Math.min(1,(t-a.at)/span)),u2=u*u,u3=u2*u;
+  return (2*u3-3*u2+1)*value(a)+(u3-2*u2+u)*span*slope(index)+(-2*u3+3*u2)*value(b)+(u3-u2)*span*slope(end);
+}
 export function cameraCue(t, mobile, reduced) {
-  const keys = reduced ? [
-    {at:0,dir:[1.7,.45,-1.35],roll:-.30,zoom:1,focus:0},
-    {at:1,dir:[1.7,.45,-1.35],roll:-.30,zoom:1,focus:0}
-  ] : [
-    {at:0,dir:[1.7,.45,-1.35],roll:-.30,zoom:1,focus:0},
+  if(reduced)return {dir:[1.7,.45,-1.35],roll:-.30,zoom:1,focus:0,screenX:0,screenY:0};
+  const first={at:0,dir:[1.7,.45,-1.35],roll:-.30,zoom:1,focus:0};
+  const keys=[
     {at:.11,dir:[1.1,.28,-1.8],roll:-.18,zoom:mobile?.31:.27,focus:1},
     {at:.19,dir:[1.05,.29,-1.8],roll:-.15,zoom:mobile?.31:.27,focus:1},
-    {at:.35,dir:[1.7,.48,-1.55],roll:-.12,zoom:1,focus:0},
-    {at:.57,dir:[.45,.7,-1.9],roll:.12,zoom:1,focus:0},
-    {at:.86,dir:[-1.15,.72,-1.8],roll:mobile?1.2:.32,zoom:mobile?1:1.05,focus:0},
-    {at:1,dir:[-1.15,.72,-1.8],roll:mobile?1.2:.32,zoom:mobile?1:1.05,focus:0}
+    {at:.29,dir:[-1.3,.37,-1.8],roll:.24,zoom:mobile?.82:.8,focus:.15},
+    {at:.35,dir:[-1.7,.48,-1.55],roll:.12,zoom:1,focus:0},
+    {at:.57,dir:[-.45,.7,-1.9],roll:-.12,zoom:1,focus:0},
+    {at:.86,dir:[.93,.70,-1.88],roll:mobile?-.99:-.28,zoom:mobile?1:1.04,focus:0},
+    {at:1,dir:[1.15,.72,-1.8],roll:mobile?-1.2:-.32,zoom:mobile?1:1.05,focus:0}
   ];
-  const index = Math.max(0,keys.findLastIndex(k=>t>=k.at));
-  const a=keys[index], b=keys[Math.min(index+1,keys.length-1)];
-  const blend=a===b?0:interval(t,a.at,b.at), mix=(x,y)=>x+(y-x)*blend;
+  let dir,roll,zoom,focus;
+  if(t<=.11){
+    // Preserve the approved first push exactly.
+    const blend=interval(t,0,.11),mix=(x,y)=>x+(y-x)*blend,b=keys[0];
+    dir=first.dir.map((v,i)=>mix(v,b.dir[i]));roll=mix(first.roll,b.roll);
+    zoom=mix(first.zoom,b.zoom);focus=mix(first.focus,b.focus);
+  }else{
+    const yaw=flightSample(keys,t,k=>Math.atan2(k.dir[0],-k.dir[2]));
+    const pitch=flightSample(keys,t,k=>Math.atan2(k.dir[1],Math.hypot(k.dir[0],k.dir[2])));
+    dir=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
+    roll=flightSample(keys,t,k=>k.roll);zoom=flightSample(keys,t,k=>k.zoom);focus=flightSample(keys,t,k=>k.focus);
+  }
   // The detail sits towards the right, leaving the dark side of the frame for copy.
   const detail=interval(t,0,.11)*(1-interval(t,.19,.35));
-  const screenX=reduced?0:(mobile?.14:.85)*detail;
-  const screenY=reduced||mobile?0:.15*detail-.16*interval(t,.35,.86);
-  return {dir:a.dir.map((v,i)=>mix(v,b.dir[i])),roll:mix(a.roll,b.roll),zoom:mix(a.zoom,b.zoom),focus:mix(a.focus,b.focus),screenX,screenY};
+  const screenX=(mobile?.14:.85)*detail;
+  const screenY=mobile?0:.15*detail-.16*interval(t,.35,.86);
+  return {dir,roll,zoom,focus,screenX,screenY};
 }

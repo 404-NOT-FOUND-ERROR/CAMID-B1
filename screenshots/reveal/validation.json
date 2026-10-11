@@ -1,6 +1,7 @@
 {
+  "continuesAndBanksRightAfterMacro": true,
   "pauseAndStagger": true,
-  "playbackWallSeconds": 12.59,
+  "playbackWallSeconds": 12.6,
   "gestureAudio": true,
   "deterministicScrubbing": true,
   "chapterSeeking": true,

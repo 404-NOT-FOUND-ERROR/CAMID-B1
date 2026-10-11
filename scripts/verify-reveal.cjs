@@ -26,6 +26,13 @@ const loaded=async page=>{await page.goto(url);await page.waitForFunction(()=>wi
   assert((await state(page)).parts.every(p=>p.offset===0));contained(await state(page));
   await screenshot(page,'01-home');
   const start=Date.now();await page.locator('#hero-explosion').click();
+  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.185);
+  const coast=(await state(page)).shot;
+  await page.waitForFunction(()=>CAMID_STATE.shot.progress>.225);
+  const bank=(await state(page)).shot,yaw=s=>Math.atan2(s.camera[0]-s.target[0],-(s.camera[2]-s.target[2]));
+  assert(bank.running,'Reveal stopped after the material shot');
+  assert(yaw(bank)<yaw(coast)-.03,'Camera must bank right after the slow material pass');
+  report.continuesAndBanksRightAfterMacro=true;
   await page.waitForFunction(()=>CAMID_STATE.shot.progress>.44);await page.locator('#shot-play').click();
   const paused=await state(page);assert(!paused.shot.running);assert(paused.parts.some(p=>p.amount>.3));
   assert(paused.parts.filter(p=>/Gear/.test(p.name)).every(p=>p.amount===0),'Gears should wait for the shells');

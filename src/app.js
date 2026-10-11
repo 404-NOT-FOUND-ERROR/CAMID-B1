@@ -316,14 +316,17 @@ function positionShotCamera(){
 function updateShotLighting(){
   if(mode!=='home'||reducedMotion){
     keyLight.intensity=4.4;keyLight.position.set(3,4,-3);
+    fillLight.position.set(-4,2,-1);redRim.position.set(1,3,4);rearFill.position.set(-3,2,4);
     fillLight.intensity=1;ambientLight.intensity=1.1;redRim.intensity=mode==='home'?1.8:1;
     rearFill.intensity=2;scene.environmentIntensity=.85;
     renderer.toneMappingExposure=.82;return;
   }
   const p=shot.active?shot.progress:0;
   const sweep=shot.active?Math.sin(Math.PI*interval(p,.015,.34)):0;
+  const side=1-2*interval(p,.19,.35);
   // Keep black surfaces deep while a moving neutral key traces the metal edge.
-  keyLight.position.set(3-4.5*sweep,4+1.5*sweep,-3);
+  keyLight.position.set((3-4.5*sweep)*side,4+1.5*sweep,-3);
+  fillLight.position.set(-4*side,2,-1);redRim.position.set(side,3,4);rearFill.position.set(-3*side,2,4);
   keyLight.intensity=5.8+2.2*sweep;
   fillLight.intensity=.38-.14*sweep;ambientLight.intensity=.68-.2*sweep;
   rearFill.intensity=.9-.35*sweep;scene.environmentIntensity=.7-.08*sweep;
