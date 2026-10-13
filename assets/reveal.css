@@ -8,7 +8,7 @@ body[data-mode=home] .hero-actions .primary{min-width:171px;box-shadow:0 5px 36p
 body[data-mode=home] #viewport{transition:left 1.15s cubic-bezier(.22,.61,.36,1),right 1.15s cubic-bezier(.22,.61,.36,1),top 1.15s cubic-bezier(.22,.61,.36,1),bottom 1.15s cubic-bezier(.22,.61,.36,1)}
 @media(min-width:761px) and (min-height:501px){body[data-mode=home]:not(.shot-active) #viewport{top:8%;bottom:11%}}
 .reveal-atmosphere{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s}
-.reveal-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 64% 62%,#d10c2038,transparent 60%),radial-gradient(ellipse at 55% 50%,transparent 28%,#030102b5 90%);filter:blur(18px)}
+.reveal-glow{position:absolute;inset:-4%;background:radial-gradient(ellipse at 64% 62%,#d10c2050,transparent 60%),radial-gradient(ellipse at 55% 50%,transparent 28%,#030102b5 90%);filter:blur(18px);opacity:var(--reveal-energy,.52);transform:translateY(var(--reveal-lift,0%))}
 .reveal-watermark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:600 clamp(140px,25vw,400px)/1 CAMID,var(--font);letter-spacing:.015em;color:#ecc5c303;white-space:nowrap}
 .shot-active .reveal-atmosphere{opacity:1}
 .shot-title{top:119px;left:5vw;z-index:4;transform:translateY(8px);transition:opacity .6s,transform .7s}
@@ -24,6 +24,8 @@ body[data-mode=home] #viewport{transition:left 1.15s cubic-bezier(.22,.61,.36,1)
 .shot-active .shot-actions{opacity:1;visibility:visible;pointer-events:auto}
 .shot-console{bottom:35px;left:50%;width:min(710px,86vw);padding:0;display:block;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;color:#b199a1;visibility:hidden;transition:opacity .65s,visibility .65s}
 .shot-active .shot-console{visibility:visible}
+.shot-running .shot-console{opacity:.45}
+.shot-running .shot-console:hover,.shot-running .shot-console:focus-within{opacity:1}
 .shot-chapters{display:flex;align-items:center;justify-content:space-between;margin:0 6px 12px;border-bottom:1px solid #ad767823}
 .shot-chapters button{display:flex;align-items:center;justify-content:center;gap:9px;position:relative;flex:1;border:0;border-radius:0;height:36px;background:none;color:#a38890;font-size:10px;width:auto;transition:color .3s}
 .shot-chapters b{font-size:8px;letter-spacing:1px;font-weight:400;color:#765e63}
@@ -42,7 +44,7 @@ body[data-mode=home] #viewport{transition:left 1.15s cubic-bezier(.22,.61,.36,1)
 .shot-transport input::-moz-range-thumb{width:8px;height:8px;border:2px solid #eed1d5;border-radius:50%;background:#b53848}
 .shot-transport output{width:69px;flex-shrink:0;font-size:10px;letter-spacing:.35px;font-variant-numeric:tabular-nums;color:#ae8d97}
 .shot-hint{display:block;text-align:center;font-size:9px;letter-spacing:1px;color:#8b6e79;margin-top:11px}
-.shot-finale{position:absolute;left:5vw;right:auto;top:26%;bottom:auto;z-index:6;text-align:left;opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .7s,transform .7s,visibility .7s;pointer-events:none}
+.shot-finale{position:absolute;left:5vw;right:auto;top:44%;bottom:auto;z-index:6;text-align:left;opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .7s,transform .7s,visibility .7s;pointer-events:none}
 .shot-finale>span{display:block;color:#9f7881;letter-spacing:2px;font-size:8px;margin-bottom:16px}
 .shot-finale .primary{gap:26px;border-radius:30px;font-size:12px;padding:13px 21px}
 .shot-finale p{font-size:10px;line-height:1.8;color:#a88792;margin-top:14px}
@@ -59,7 +61,7 @@ body[data-mode=home].shot-complete #model-tools{opacity:1;visibility:visible;lef
 @media(min-width:761px) and (max-height:740px){
  .shot-title{top:98px}.shot-title h2{font-size:28px}.shot-actions{top:102px}
  body[data-mode=home].shot-active #viewport{top:0;bottom:0}
- .shot-console{bottom:19px}.shot-hint{display:none}.shot-finale{top:26%;bottom:auto}
+ .shot-console{bottom:19px}.shot-hint{display:none}.shot-finale{top:44%;bottom:auto}
 }
 @media(max-width:760px){
  body[data-mode=home] .hero-copy{top:95px}

@@ -1,2 +1,2 @@
-// Compatibility entry point for the current continuous Bezier reveal.
-require('./verify-reveal-bezier.cjs');
+// Compatibility entry point for the current cinematic reveal validation.
+require('./verify-reveal-cinema.cjs');

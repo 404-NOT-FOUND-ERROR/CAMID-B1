@@ -1,0 +1,15 @@
+CAMID B1 — 2026-10-13 cinematic reveal
+
+Brief: replace the conservative orbit with a monumental continuous product film.
+15 seconds. Extreme macro, delayed left arc, low-to-high crane, staggered explosion,
+and a single-direction deceleration into the exploded tableau.
+
+Source: existing real CAD GLB and material finish, unchanged.
+Camera: authored cubic Bezier world-space rail, measured arc lengths, monotone
+cubic timing with nonzero interior velocity. Static assembled bounds define the
+rail. Only the final pose is fitted to the complete exploded assembly.
+
+Validation: scripts/verify-reveal.cjs and scripts/verify-reveal-cinema.cjs.
+Preview: previews/camid-reveal-cinema.webm, recorded directly from the live WebGL
+animation. The standalone film contains the product and studio background,
+without interactive controls. Use the homepage for the full interactive version.

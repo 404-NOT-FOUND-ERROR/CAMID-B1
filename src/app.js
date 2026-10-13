@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {REVEAL_SECONDS,interval,bezierProgress,curves,phases,phaseAt,partReveal,cameraCue} from './reveal-timeline.js';
+import {REVEAL_SECONDS,interval,bezierProgress,curves,phases,phaseAt,partReveal,cinemaStations,railProgress} from './reveal-timeline.js';
 import {createRevealAudio} from './reveal-audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -150,6 +150,17 @@ function consolidatePartPrimitives(root){
   });
 }
 
+function framePoints(points,direction,upVector,margin=1.22){
+  if(!points.length)return;
+  const dir=direction.clone().normalize(),right=upVector.clone().cross(dir).normalize(),up=dir.clone().cross(right);
+  const ext=axis=>[Math.min(...points.map(p=>p.dot(axis))),Math.max(...points.map(p=>p.dot(axis)))];
+  const [rx0,rx1]=ext(right),[uy0,uy1]=ext(up),[dz0,dz1]=ext(dir);
+  const center=right.clone().multiplyScalar((rx0+rx1)/2).addScaledVector(up,(uy0+uy1)/2).addScaledVector(dir,(dz0+dz1)/2);
+  const tanV=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),tanH=tanV*camera.aspect;
+  let distance=0;
+  for(const point of points){const p=point.clone().sub(center),depth=p.dot(dir);distance=Math.max(distance,Math.abs(p.dot(right))*margin/tanH+depth,Math.abs(p.dot(up))*margin/tanV+depth);}
+  return {center,distance,dir};
+}
 function frame(direction,margin=1.22){
   if(!model)return;
   model.updateMatrixWorld(true);
@@ -158,18 +169,7 @@ function frame(direction,margin=1.22){
     const b=m.geometry.boundingBox;
     for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(v3(x,y,z).applyMatrix4(m.matrixWorld));
   });
-  if(!points.length)return;
-  const dir=direction.clone().normalize(),right=camera.up.clone().cross(dir).normalize(),up=dir.clone().cross(right);
-  const ext=axis=>[Math.min(...points.map(p=>p.dot(axis))),Math.max(...points.map(p=>p.dot(axis)))];
-  const [rx0,rx1]=ext(right),[uy0,uy1]=ext(up),[dz0,dz1]=ext(dir);
-  const center=right.clone().multiplyScalar((rx0+rx1)/2).addScaledVector(up,(uy0+uy1)/2).addScaledVector(dir,(dz0+dz1)/2);
-  const tanV=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),tanH=tanV*camera.aspect;
-  let distance=0;
-  for(const point of points){
-    const p=point.clone().sub(center),depth=p.dot(dir);
-    distance=Math.max(distance,Math.abs(p.dot(right))*margin/tanH+depth,Math.abs(p.dot(up))*margin/tanV+depth);
-  }
-  return {center,distance,dir};
+  return framePoints(points,direction,camera.up,margin);
 }
 function fit(direction,margin=1.22){
   const result=frame(direction,margin);if(!result)return;
@@ -233,7 +233,7 @@ function updateShotUI(){
   $('#shot-range').value=(shot.progress*100).toFixed(1);
   $('#shot-range').style.setProperty('--progress',(shot.progress*100)+'%');
   $('#shot-range').setAttribute('aria-valuetext',phase.short+'，'+Math.round(shot.progress*100)+'%');
-  $('#shot-value').textContent=(shot.progress*REVEAL_SECONDS).toFixed(1).padStart(4,'0')+' / 12s';
+  $('#shot-value').textContent=(shot.progress*REVEAL_SECONDS).toFixed(1).padStart(4,'0')+' / '+REVEAL_SECONDS+'s';
   $('#shot-play').textContent=shot.running?'Ⅱ':'▶';
   $('#shot-play').title=shot.running?'暂停镜头':'继续镜头';
   $('#shot-play').setAttribute('aria-label',shot.running?'暂停揭幕':'播放揭幕');
@@ -264,11 +264,15 @@ function captureShotCamera(){
   shot.startDirection=camera.position.clone().sub(controls.target).normalize();
   shot.startDistance=camera.position.distanceTo(controls.target);
   shot.startTarget=controls.target.clone();shot.startUp=camera.up.clone();
+  shot.rig=null;
 }
 function activateShot(){
   if(shot.active)return;
-  clearTimeout(setMode.timer);captureShotCamera();shot.active=true;
-  controls.autoRotate=false;controls.enableDamping=false;syncRotate();
+  clearTimeout(setMode.timer);
+  const eye=camera.position.clone(),target=controls.target.clone(),up=camera.up.clone();
+  controls.autoRotate=false;controls.enableDamping=false;controls.update();
+  camera.position.copy(eye);controls.target.copy(target);camera.up.copy(up);camera.lookAt(target);
+  captureShotCamera();shot.active=true;syncRotate();
   updateShotUI();resize();
 }
 function resetShot(returnFocus=false){
@@ -286,33 +290,66 @@ function startShot(goal=1){
   shot.running=true;controls.enabled=false;controls.autoRotate=false;syncRotate();
   revealAudio.cue(phaseAt(shot.progress),goal===0);updateShotUI();
 }
-function positionShotCamera(){
-  if(!shot.active||!shot.startDirection)return;
-  const p=shot.progress, cue=cameraCue(p,innerWidth<=760,reducedMotion);
-  const opening=bezierProgress(p,0,.13,curves.push);
-  const dir=shot.startDirection.clone().lerp(v3(...cue.dir).normalize(),opening).normalize();
-  camera.up.copy(shot.startUp).lerp(v3(cue.roll,1,0).normalize(),opening).normalize();
-  const margin=innerWidth<=760?1.15:(innerHeight<=500?1.12:1.40);
-  const result=frame(dir,margin);if(!result)return;
-  let target=result.center,lensCenter=null;
-  if(cue.focus){
-    const lens=meshes.find(m=>/Glass/.test(shortName(m)));
-    const box=meshes.find(m=>/Box 4001/.test(shortName(m)));
-    if(lens&&box){
-      lensCenter=new THREE.Box3().setFromObject(lens).getCenter(v3(0,0,0));
-      const detail=lensCenter.clone().lerp(new THREE.Box3().setFromObject(box).getCenter(v3(0,0,0)),.42);
-      target=target.clone().lerp(detail,cue.focus);
+function captureRevealGeometry(){
+  const closedPoints=[],openPoints=[];
+  for(const m of meshes.filter(m=>!isReference(m))){
+    m.geometry.computeBoundingBox();const b=m.geometry.boundingBox;
+    const offset=m.userData.explodeVector.clone().applyMatrix3(new THREE.Matrix3().setFromMatrix4(m.parent.matrixWorld));
+    for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){
+      const point=v3(x,y,z).applyMatrix4(m.matrixWorld);closedPoints.push(point);openPoints.push(point.clone().add(offset));
     }
   }
-  if(cue.screenX||cue.screenY){
-    const right=camera.up.clone().cross(dir).normalize();
-    const up=dir.clone().cross(right).normalize();
-    const halfHeight=result.distance*cue.zoom*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
-    target=target.clone().addScaledVector(right,-halfHeight*camera.aspect*cue.screenX).addScaledVector(up,-halfHeight*cue.screenY);
+  const centerOf=name=>new THREE.Box3().setFromObject(meshes.find(m=>name.test(shortName(m)))).getCenter(v3(0,0,0));
+  shot.geometry={closedPoints,openPoints,closedCenter:new THREE.Box3().setFromPoints(closedPoints).getCenter(v3(0,0,0)),openCenter:new THREE.Box3().setFromPoints(openPoints).getCenter(v3(0,0,0)),lensCenter:centerOf(/Glass/),caseCenter:centerOf(/Box 4001/)};
+}
+function createShotRig(){
+  const mobile=innerWidth<=760,stations=cinemaStations(mobile),g=shot.geometry;
+  const direction=s=>v3(Math.sin(s.yaw)*Math.cos(s.pitch),Math.sin(s.pitch),-Math.cos(s.yaw)*Math.cos(s.pitch));
+  const final=stations.at(-1),finalUp=v3(final.roll,1,0).normalize();
+  const finalFit=framePoints(g.openPoints,direction(final),finalUp,mobile?1.20:(innerHeight<=500?1.18:1.14));
+  const baseDistance=framePoints(g.closedPoints,direction({yaw:.55,pitch:0}),v3(0,1,0),1.08).distance;
+  const poses=stations.map(s=>{
+    if(s.start)return {...s,target:shot.startTarget.clone(),eye:shot.startTarget.clone().addScaledVector(shot.startDirection,shot.startDistance),up:shot.startUp.clone()};
+    const dir=direction(s),up=v3(s.roll,1,0).normalize();
+    const distance=s.finalDistance?finalFit.distance*s.finalDistance:baseDistance*s.distance;
+    const target=g.closedCenter.clone().lerp(finalFit.center,s.open||0);
+    if(s.focus)target.lerp(g.lensCenter.clone().lerp(g.caseCenter,s.detail),s.focus);
+    const right=up.clone().cross(dir).normalize(),vertical=dir.clone().cross(right);
+    const halfHeight=distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+    target.addScaledVector(right,-halfHeight*camera.aspect*s.x).addScaledVector(vertical,-halfHeight*s.y);
+    return {...s,target,eye:target.clone().addScaledVector(dir,distance),up};
+  });
+  const rail=new THREE.CurvePath(),targets=new THREE.CurvePath();
+  const tangent=i=>{
+    const prev=poses[Math.max(0,i-1)].eye,next=poses[Math.min(poses.length-1,i+1)].eye,here=poses[i].eye;
+    const incoming=here.clone().sub(prev),outgoing=next.clone().sub(here);
+    const length=Math.min(incoming.length()||Infinity,outgoing.length()||Infinity)*.32;
+    return incoming.normalize().add(outgoing.normalize()).normalize().multiplyScalar(length);
+  };
+  // Shared spatial tangents + arc-length timing remove pauses at rail joins.
+  for(let i=0;i<poses.length-1;i++){
+    const a=poses[i],b=poses[i+1];
+    rail.add(new THREE.CubicBezierCurve3(a.eye,a.eye.clone().add(tangent(i)),b.eye.clone().sub(tangent(i+1)),b.eye));
+    const velocity=j=>{
+      const prev=poses[Math.max(0,j-1)],next=poses[Math.min(poses.length-1,j+1)];
+      return next.target.clone().sub(prev.target).divideScalar(next.time-prev.time);
+    };
+    const span=(b.time-a.time)/3;
+    targets.add(new THREE.CubicBezierCurve3(a.target,a.target.clone().addScaledVector(velocity(i),span),b.target.clone().addScaledVector(velocity(i+1),-span),b.target));
   }
-  // A continuing head pan overlaps the macro glide and precedes the delayed arc.
-  const eye=target.clone().addScaledVector(dir,result.distance*cue.zoom);
-  if(cue.pan&&lensCenter)target=target.clone().lerp(lensCenter,cue.pan);
+  const lengths=rail.getCurveLengths(),total=lengths.at(-1);
+  shot.rig={rail,targets,poses,knots:poses.map((s,i)=>({time:s.time,offset:i?lengths[i-1]/total:0})),baseDistance,key:[camera.aspect,innerWidth,innerHeight].join(':')};
+}
+function positionShotCamera(){
+  if(!shot.active||!shot.startDirection)return;
+  if(reducedMotion){camera.up.set(-.3,1,0).normalize();fit(v3(1.7,.45,-1.35),innerWidth<=760?1.2:1.4);return;}
+  if(!shot.rig||shot.rig.key!==[camera.aspect,innerWidth,innerHeight].join(':'))createShotRig();
+  const rig=shot.rig,p=shot.progress;
+  const index=Math.min(rig.poses.length-2,Math.max(0,rig.poses.findLastIndex(s=>p>=s.time)));
+  const a=rig.poses[index],b=rig.poses[index+1],u=(p-a.time)/(b.time-a.time);
+  const eye=rig.rail.getPoint(railProgress(rig.knots,p));
+  const target=rig.targets.curves[index].getPoint(u);
+  camera.up.copy(a.up).lerp(b.up,smoothRoll(u)).normalize();
   const forward=target.clone().sub(eye).normalize();
   let retreat=0;
   for(const mesh of meshes.filter(m=>m.visible)){
@@ -324,10 +361,12 @@ function positionShotCamera(){
   }
   // Every visible part stays beyond the near plane, including protruding controls.
   eye.addScaledVector(forward,-retreat);
+  shot.safetyRetreat=retreat;
   controls.target.copy(target);
   camera.position.copy(eye);
   camera.lookAt(target);
 }
+const smoothRoll=t=>t*t*(3-2*t);
 function updateShotLighting(){
   if(mode!=='home'||reducedMotion){
     keyLight.intensity=4.4;keyLight.position.set(3,4,-3);
@@ -337,16 +376,20 @@ function updateShotLighting(){
     renderer.toneMappingExposure=.82;return;
   }
   const p=shot.active?shot.progress:0;
-  const sweep=shot.active?Math.sin(Math.PI*bezierProgress(p,.015,.42,curves.glide)):0;
-  const side=1-2*bezierProgress(p,.295,.47,curves.turn);
-  // Keep black surfaces deep while a moving neutral key traces the metal edge.
-  keyLight.position.set((3-4.5*sweep)*side,4+1.5*sweep,-3);
-  fillLight.position.set(-4*side,2,-1);redRim.position.set(side,3,4);rearFill.position.set(-3*side,2,4);
-  keyLight.intensity=5.8+2.2*sweep;
-  fillLight.intensity=.38-.14*sweep;ambientLight.intensity=.68-.2*sweep;
-  rearFill.intensity=.9-.35*sweep;scene.environmentIntensity=.7-.08*sweep;
-  redRim.intensity=2.8+1.6*sweep;
-  renderer.toneMappingExposure=.9+.04*sweep;
+  const sweep=shot.active?Math.sin(Math.PI*bezierProgress(p,.015,.27,curves.glide)):0;
+  const release=shot.active?Math.sin(Math.PI*bezierProgress(p,.36,.83,curves.mechanism)):0;
+  const lift=bezierProgress(p,.42,.78,curves.settle);
+  // A narrow material pass opens into a broad light sweep as the rail rises.
+  keyLight.position.set(3-4.8*sweep-6*lift,4+2.8*release,-3-2*lift);
+  fillLight.position.set(-4+6*lift,2,-1);redRim.position.set(1-4*lift,3+2*release,4);
+  rearFill.position.set(-3+6*lift,2+3*release,4);
+  keyLight.intensity=5.8+2*sweep+2.6*release;
+  fillLight.intensity=.3-.12*sweep+.38*lift;ambientLight.intensity=.58-.16*sweep+.18*lift;
+  rearFill.intensity=.75+.8*release+.55*lift;scene.environmentIntensity=.64+.12*lift;
+  redRim.intensity=3+1.2*sweep+2.2*release;
+  renderer.toneMappingExposure=.9+.025*sweep+.035*release;
+  document.documentElement.style.setProperty('--reveal-energy',String(.52+.48*release));
+  document.documentElement.style.setProperty('--reveal-lift',(-4*lift)+'%');
 }
 function finishShot(){
   shot.running=false;controls.enabled=true;controls.enableDamping=true;updateShotUI();
@@ -603,7 +646,7 @@ try{
       m.userData.burstVector=localOffset(m,raw.clone().sub(v3(.006,.012,0)).normalize().multiplyScalar(.095));
       if(layerIndex(m)>=0){const el=document.createElement('span');el.className='layer-label';el.innerHTML='<i></i>Shutter '+(layerIndex(m)+1);$('#shutter-labels').append(el);labelElements.push({m,el});}
     });
-    ready=true;$('#loading').hidden=true;makeCatalog();makeDetective();setMode(location.hash.slice(1)||'home');updateShotUI();
+    captureRevealGeometry();ready=true;$('#loading').hidden=true;makeCatalog();makeDetective();setMode(location.hash.slice(1)||'home');updateShotUI();
     window.CAMID_STATE={get ready(){return ready;},get mode(){return mode;},get partCount(){return meshes.length;},get visibleParts(){return meshes.filter(m=>m.visible).map(m=>shortName(m));},get selectedPart(){return selected?shortName(selected):null;},get buildStep(){return buildStep;},get stats(){return renderer.info.render;},get shot(){return {progress:shot.progress,running:shot.running,active:shot.active,phase:phaseAt(shot.progress),sound:revealAudio.enabled,reducedMotion,camera:camera.position.toArray(),target:controls.target.toArray()};},get revealParts(){return meshes.filter(m=>!isReference(m)).map(m=>({name:shortName(m),family:family(m),amount:partReveal(shortName(m),family(m),shot.progress,layerIndex(m)),offset:m.position.distanceTo(m.userData.basePosition)}));},get logoCount(){return decorations.length;},get projections(){return meshes.filter(m=>m.visible).map(m=>{const p=new THREE.Box3().setFromObject(m).getCenter(v3(0,0,0)).project(camera);return {name:shortName(m),x:p.x,y:p.y,z:p.z};});}};
   },fatal);
 }catch(e){fatal(e);}

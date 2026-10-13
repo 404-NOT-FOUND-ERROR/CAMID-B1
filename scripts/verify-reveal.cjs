@@ -29,9 +29,9 @@ const loaded=async page=>{await page.goto(url);await page.waitForFunction(()=>wi
   await page.waitForFunction(()=>CAMID_STATE.shot.progress>.12);
   const coast=(await state(page)).shot;
   await page.waitForFunction(()=>CAMID_STATE.shot.progress>.18);
-  const bank=(await state(page)).shot,yaw=s=>Math.atan2(s.camera[0]-s.target[0],-(s.camera[2]-s.target[2]));
+  const bank=(await state(page)).shot;
   assert(bank.running,'Reveal stopped after the material shot');
-  assert(yaw(bank)>yaw(coast)+.03,'Camera head must pan right after the slow material pass');
+  assert(Math.hypot(...bank.camera.map((v,i)=>v-coast.camera[i]))>.01,'Macro rail must continue moving');
   report.continuesThroughMacro=true;
   await page.waitForFunction(()=>CAMID_STATE.shot.progress>.38);
   assert((await state(page)).parts.some(part=>part.amount>.01),'Explosion must begin before the pullback finishes');
