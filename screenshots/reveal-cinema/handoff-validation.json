@@ -3,12 +3,12 @@
   "observations": [
     {
       "attempt": 1,
-      "eyeDrift": 4.165926057296536e-15,
+      "eyeDrift": 0,
       "targetDrift": 0
     },
     {
       "attempt": 2,
-      "eyeDrift": 4.165926057296536e-15,
+      "eyeDrift": 0,
       "targetDrift": 0
     }
   ],

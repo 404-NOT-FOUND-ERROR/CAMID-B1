@@ -36,7 +36,7 @@ python -m http.server 4173
 
 ## 互动内容
 
-- **整机 / 15 秒揭幕**：快速推进到极近特写 → 持续右摇掠过材质 → 先拉远、再接入左转 → 拉镜中开壳 → 同向绕行并抬升，光学与机构分层释放 → 减速落在左侧四分之三爆炸构图。支持暂停、继续、拖动时间轴、点击阶段定位、倒放合回、跳至全貌、Esc 退出及机械音效开关；结尾可以旋转观察并进入零件地图。默认静音，开启声音后才创建音频。
+- **整机 / 15 秒揭幕**：快速推进到极近特写 → 贴着机身由上向下斜掠 → 先拉远、再从低位接入左侧绕行 → 拉镜中开壳 → 沿明显的上升弧线越过机构，光学与机构分层释放 → 减速落在左侧四分之三爆炸构图。支持暂停、继续、拖动时间轴、点击阶段定位、倒放合回、跳至全貌、Esc 退出及机械音效开关；结尾可以旋转观察并进入零件地图。默认静音，开启声音后才创建音频。
 - **拆解**：按 `Printer`、`Shutter`、`Tank` 分组浏览真实零件，搜索、选中、单独观察并展开装配。
 - **装回去**：依据 A4-5/A4-6 Printer 装配说明逐步显示支承件、方辊、三类齿轮、圆辊、出口件、锁件、外壳和曲柄。
 - **快门叠层**：分开观察 CAD 中的 `Shutter 1/2/3`，对应 A4-8/A4-9 的叠层顺序；不把叠层动画冒充真实曝光时序。
@@ -169,14 +169,24 @@ node scripts/verify-reveal-cinema.cjs
 node scripts/verify-rear-side.cjs
 ```
 
+2026-10-15 长运镜的新旧实测对比另用以下命令。脚本优先读取项目根目录下的 `reveal-longtake-baseline`；没有该目录时，从本地 Git 历史读取上一版提交 `7238d3b`，因此 Git 方式需要本地保留这一提交。
+
+```powershell
+node scripts/verify-reveal-longtake.cjs
+```
+
+也可用 `CAMID_LONGTAKE_BASELINE` 指定包含旧版 `src/app.js` 与 `src/reveal-timeline.js` 的目录，或用 `CAMID_LONGTAKE_BASELINE_REV` 指定其他基线提交。对比脚本采样实际相机与网格投影，记录机构展开段的轨迹弯曲、俯仰跨度，以及近景中镜片和壳体的相对视差；同时检查中途持续运动与重复定位的一致性。结果输出到 `screenshots/reveal-longtake/comparison.json`，通过状态与数值以实际运行报告为准。
+
 镜头检查需要本地 `playwright` 与 Chromium 浏览器；也可用 `CAMID_BROWSER` 指定 Edge/Chrome 的可执行路径。揭幕验证覆盖 1440 × 900、1024 × 768、390 × 844、360 × 640 与 844 × 390，以及暂停/继续、错峰展开、确定性拖动、阶段定位、倒放归零、声音开关、章节切换、减少动态效果与 `file://` 离线打开。截图前同时检查 WebGL 仍有可见像素，避免画布尺寸变化后出现透明帧。结果保存在 `screenshots/reveal/validation.json`。几何检查覆盖 46 个实例与 345 个大壳面三角形角点的法线，并确认仅保留贴合机身的后盖及上方孔位的内侧手柄。装配检查直接核对实际网格上的孔边、手柄定位点与接触面。
 
 揭幕的阶段、零件位移采样、镜头轨道节点与时间映射位于 `src/reveal-timeline.js`，世界空间轨道构建与取景位于 `src/app.js`，音效位于 `src/reveal-audio.js`，首页样式覆盖位于 `assets/reveal.css`。所有动作由同一时间进度确定，反向与拖动不会积累位置误差。后台标签页自动暂停；开启系统“减少动态效果”时，使用约 1.6 秒的固定方向展开，不进行近景推进、绕行及灯光扫过。
 
 历史记录：2026-10-11 的 12 秒运镜修订扩大了首屏模型与揭幕画布，开场推到镜头环 / CAMID 铭牌的大特写，再拉远到完整相机。通过压低环境补光、强化移动中性主光与红色轮廓增加材质反差；其他探索章节恢复原观察光。`verify-reveal-impact.cjs` 与 `references/reveal-impact/baseline` 保留为这一轮放大效果的历史比较，结果与前后对照图在 `screenshots/reveal-impact`；它不属于当前镜头的推荐验证入口。后续 12 秒贝塞尔节奏版的用户截图、基线与对照图保留在 `references/reveal-bezier` 和 `screenshots/reveal-bezier`。
 
-2026-10-13 的当前版本将揭幕扩展为 15 秒，改用真实世界空间的三次贝塞尔轨道。轨道按弧长采样，再用单调三次贝塞尔时间映射控制行进速度；中间节点保留速度，构图变化连续穿过。约前 1 秒快速推进，1–3.3 秒在极近特写中持续右摇掠过；3.3 秒先拉远，约 4.2 秒才接入左转，约 5.1 秒开始开壳。7–11 秒继续向左绕行并抬升，光学组件与内部机构分层释放，第二段扫光同时增强，最后减速落到左侧四分之三爆炸构图。
+2026-10-13 的轨道版本将揭幕扩展为 15 秒，改用真实世界空间的三次贝塞尔轨道。轨道按弧长采样，再用单调三次贝塞尔时间映射控制行进速度；中间节点保留速度，构图变化连续穿过。这一版确立了先推进、近景掠过、先拉远后左转、拉镜中开壳及分层释放的顺序，预览保留在 `previews/camid-reveal-cinema.webm`。
 
-轨道以固定整机尺寸作为取景参考，仅最终姿态按完整爆炸包围盒计算适配距离，避免逐帧自动缩放抵消零件展开的视觉冲击。镜片与快门组件先随镜头外壳移动，再按各自节奏释放；桌面全屏画布和手机竖向构图各有取景安排，所有可见零件保留近裁切安全距离。`verify-reveal-cinema.cjs` 是当前轨道检查入口，报告与截图输出到 `screenshots/reveal-cinema`；主交互回归仍使用 `verify-reveal.cjs`。旧的 `verify-reveal-ad.cjs`、`verify-reveal-flight.cjs` 与 `verify-reveal-bezier.cjs` 入口转到现行轨道检查。完整预览视频输出路径为 `previews/camid-reveal-cinema.webm`。
+2026-10-15 的长运镜修订进一步强调空间弧度：极近特写从机身上方斜掠到下方，拉远后在低位绕行，再沿上升弧线越过展开机构。轨道节点使用明确编排的 `flow` 方向与 `handle` 长度建立共享贝塞尔切线，近景控制柄较短，抬升段控制柄更长。物理机位围绕固定参照移动，取景目标独立变化，保留近处镜头与后方壳面的相对视差。拉镜和抬升阶段的视线最多延后 0.42 秒，画面倾角连续变化；延迟在落定前收回，使机位、视线与倾角一起停稳。这些变化都由播放进度直接计算，拖动和倒放不依赖上一帧。
+
+轨道继续以固定整机尺寸作为取景参考，仅最终姿态按完整爆炸包围盒计算适配距离。外壳在拉镜过程中退开，镜片与快门组件先随镜头外壳移动，再按各自节奏释放；桌面全屏画布和手机竖向构图各有取景安排，并保留近裁切安全检查。`verify-reveal-cinema.cjs` 检查现行轨道，报告与截图输出到 `screenshots/reveal-cinema`；主交互回归仍使用 `verify-reveal.cjs`，新旧空间轨迹对比使用 `verify-reveal-longtake.cjs`。旧的 `verify-reveal-ad.cjs`、`verify-reveal-flight.cjs` 与 `verify-reveal-bezier.cjs` 入口转到 cinema 检查。新版完整预览输出路径为 `previews/camid-reveal-longtake.webm`。
 
 `node scripts/verify-materials.cjs` 检查九种带贴图的真实 WebGL 材质、壳体四个材质区、CAMID 边界贴图、玻璃中性透射及离线贴图解码，并通过关闭法线和边界贴图后的像素对比确认两者参与渲染。`node scripts/verify-reference.cjs` 检查全章节风格、手机宽度及离线字体，生成整机与标识区近照。`node scripts/verify-rear-side.cjs` 检查三处新增平面颜色贴图、法线和 ORM 的解码、0–1 UV 范围、ClampToEdgeWrapping、背面与侧面的像素效果以及揭幕时的零件绑定，输出 `screenshots/finish-v4/` 与 `references/finish-v4/validation.json`。

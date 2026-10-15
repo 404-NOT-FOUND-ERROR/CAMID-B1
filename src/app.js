@@ -13,7 +13,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const viewport = $('#viewport');
 let mode = 'home', meshes = [], selected = null, isolated = false, group = 'all';
 let hideShell = false, buildStep = 0, shutterCase = false, ready = false;
-const shot={progress:0,goal:1,running:false,active:false,from:0,elapsed:0,duration:12,startDirection:null,startDistance:0,startTarget:null,startUp:null,phase:-1};
+const shot={progress:0,goal:1,running:false,active:false,from:0,elapsed:0,duration:REVEAL_SECONDS,startDirection:null,startDistance:0,startTarget:null,startUp:null,phase:-1};
 const revealAudio=createRevealAudio();
 let decorations=[];
 const v3 = (x,y,z) => new THREE.Vector3(x,y,z);
@@ -312,44 +312,58 @@ function createShotRig(){
     if(s.start)return {...s,target:shot.startTarget.clone(),eye:shot.startTarget.clone().addScaledVector(shot.startDirection,shot.startDistance),up:shot.startUp.clone()};
     const dir=direction(s),up=v3(s.roll,1,0).normalize();
     const distance=s.finalDistance?finalFit.distance*s.finalDistance:baseDistance*s.distance;
-    const target=g.closedCenter.clone().lerp(finalFit.center,s.open||0);
-    if(s.focus)target.lerp(g.lensCenter.clone().lerp(g.caseCenter,s.detail),s.focus);
+    const pivot=g.closedCenter.clone().lerp(finalFit.center,s.open||0),target=pivot.clone();
+    if(s.focus){
+      pivot.lerp(g.lensCenter.clone().lerp(g.caseCenter,.36),s.focus);
+      target.lerp(g.lensCenter.clone().lerp(g.caseCenter,s.detail),s.focus);
+    }
+    // Travel around a stable physical pivot. Framing only steers the gaze:
+    // translating both eye and target by it would cancel the surface parallax.
+    const eye=pivot.addScaledVector(dir,distance);
     const right=up.clone().cross(dir).normalize(),vertical=dir.clone().cross(right);
     const halfHeight=distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
     target.addScaledVector(right,-halfHeight*camera.aspect*s.x).addScaledVector(vertical,-halfHeight*s.y);
-    return {...s,target,eye:target.clone().addScaledVector(dir,distance),up};
+    return {...s,target,eye,up,right,vertical,dir};
   });
-  const rail=new THREE.CurvePath(),targets=new THREE.CurvePath();
+  const rail=new THREE.CurvePath(),targets=new THREE.CurvePath(),ups=new THREE.CurvePath();
   const tangent=i=>{
     const prev=poses[Math.max(0,i-1)].eye,next=poses[Math.min(poses.length-1,i+1)].eye,here=poses[i].eye;
     const incoming=here.clone().sub(prev),outgoing=next.clone().sub(here);
-    const length=Math.min(incoming.length()||Infinity,outgoing.length()||Infinity)*.32;
-    return incoming.normalize().add(outgoing.normalize()).normalize().multiplyScalar(length);
+    const pose=poses[i],length=Math.min(incoming.length()||Infinity,outgoing.length()||Infinity)*(pose.handle||.32);
+    const heading=pose.flow?pose.right.clone().multiplyScalar(pose.flow[0]).addScaledVector(pose.vertical,pose.flow[1]).addScaledVector(pose.dir,pose.flow[2]):incoming.normalize().add(outgoing.normalize());
+    return heading.normalize().multiplyScalar(length);
   };
   // Shared spatial tangents + arc-length timing remove pauses at rail joins.
   for(let i=0;i<poses.length-1;i++){
     const a=poses[i],b=poses[i+1];
     rail.add(new THREE.CubicBezierCurve3(a.eye,a.eye.clone().add(tangent(i)),b.eye.clone().sub(tangent(i+1)),b.eye));
-    const velocity=j=>{
+    const velocity=(j,property)=>{
+      if(j===0||j===poses.length-1)return v3(0,0,0);
       const prev=poses[Math.max(0,j-1)],next=poses[Math.min(poses.length-1,j+1)];
-      return next.target.clone().sub(prev.target).divideScalar(next.time-prev.time);
+      return next[property].clone().sub(prev[property]).divideScalar(next.time-prev.time);
     };
     const span=(b.time-a.time)/3;
-    targets.add(new THREE.CubicBezierCurve3(a.target,a.target.clone().addScaledVector(velocity(i),span),b.target.clone().addScaledVector(velocity(i+1),-span),b.target));
+    for(const [property,path] of [['target',targets],['up',ups]])path.add(new THREE.CubicBezierCurve3(a[property],a[property].clone().addScaledVector(velocity(i,property),span),b[property].clone().addScaledVector(velocity(i+1,property),-span),b[property]));
   }
   const lengths=rail.getCurveLengths(),total=lengths.at(-1);
-  shot.rig={rail,targets,poses,knots:poses.map((s,i)=>({time:s.time,offset:i?lengths[i-1]/total:0})),baseDistance,key:[camera.aspect,innerWidth,innerHeight].join(':')};
+  shot.rig={rail,targets,ups,poses,knots:poses.map((s,i)=>({time:s.time,offset:i?lengths[i-1]/total:0})),baseDistance,key:[camera.aspect,innerWidth,innerHeight].join(':')};
 }
 function positionShotCamera(){
   if(!shot.active||!shot.startDirection)return;
   if(reducedMotion){camera.up.set(-.3,1,0).normalize();fit(v3(1.7,.45,-1.35),innerWidth<=760?1.2:1.4);return;}
   if(!shot.rig||shot.rig.key!==[camera.aspect,innerWidth,innerHeight].join(':'))createShotRig();
   const rig=shot.rig,p=shot.progress;
-  const index=Math.min(rig.poses.length-2,Math.max(0,rig.poses.findLastIndex(s=>p>=s.time)));
-  const a=rig.poses[index],b=rig.poses[index+1],u=(p-a.time)/(b.time-a.time);
+  const sample=(path,t)=>{
+    const index=Math.min(rig.poses.length-2,Math.max(0,rig.poses.findLastIndex(s=>t>=s.time)));
+    const a=rig.poses[index],b=rig.poses[index+1];
+    return path.curves[index].getPoint((t-a.time)/(b.time-a.time));
+  };
   const eye=rig.rail.getPoint(railProgress(rig.knots,p));
-  const target=rig.targets.curves[index].getPoint(u);
-  camera.up.copy(a.up).lerp(b.up,smoothRoll(u)).normalize();
+  // A deterministic 0.42-second gaze delay gives the dolly/crane a leading edge.
+  // Fade the delay out before landing so eye, gaze and bank settle together.
+  const gazeTime=p-.028*interval(p,.20,.38)*(1-interval(p,.76,1));
+  const target=sample(rig.targets,gazeTime);
+  camera.up.copy(sample(rig.ups,p)).normalize();
   const forward=target.clone().sub(eye).normalize();
   let retreat=0;
   for(const mesh of meshes.filter(m=>m.visible)){
@@ -366,7 +380,6 @@ function positionShotCamera(){
   camera.position.copy(eye);
   camera.lookAt(target);
 }
-const smoothRoll=t=>t*t*(3-2*t);
 function updateShotLighting(){
   if(mode!=='home'||reducedMotion){
     keyLight.intensity=4.4;keyLight.position.set(3,4,-3);

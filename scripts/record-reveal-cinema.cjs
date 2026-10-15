@@ -1,5 +1,7 @@
 // Record the actual WebGL reveal as a standalone, silent product film.
 const fs=require('node:fs/promises'),path=require('node:path'),{createRequire}=require('node:module');
+const filmName=process.env.CAMID_FILM_NAME||'camid-reveal-longtake';
+const previewUrl=process.env.CAMID_URL||'http://127.0.0.1:4189/#home';
 const root=path.resolve(__dirname,'..'),{build}=createRequire(path.join(root,'package.json'))('esbuild'),{chromium}=createRequire(process.execPath)('playwright');
 (async()=>{
  const source=await fs.readFile(path.join(root,'src/app.js'),'utf8');
@@ -9,7 +11,7 @@ const root=path.resolve(__dirname,'..'),{build}=createRequire(path.join(root,'pa
   const page=await browser.newPage({viewport:{width:1600,height:900}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/assets/app.js',r=>r.fulfill({contentType:'text/javascript',body:bundle}));
-  await page.goto(process.env.CAMID_URL||'http://127.0.0.1:4189/#home');await page.waitForFunction(()=>window.CAMID_STATE?.ready);await page.waitForTimeout(1400);
+  await page.goto(previewUrl);await page.waitForFunction(()=>window.CAMID_STATE?.ready);await page.waitForTimeout(1400);
   await page.locator('#hero-explosion').click();await page.evaluate(()=>__film.seek(0));await page.waitForTimeout(1400);
   const movie=await page.evaluate(async()=>{
    const backdrop=new Image();backdrop.src='assets/studio-backdrop.jpg';await backdrop.decode();await document.fonts.ready;
@@ -47,10 +49,10 @@ const root=path.resolve(__dirname,'..'),{build}=createRequire(path.join(root,'pa
   });
   if(errors.length||!movie.complete)throw new Error('Recording failed: '+JSON.stringify(errors));
   const out=path.join(root,'previews');await fs.mkdir(out,{recursive:true});
-  await fs.writeFile(path.join(out,'camid-reveal-cinema.webm'),Buffer.from(movie.data,'base64'));
-  const {data,...metadata}=movie;await fs.writeFile(path.join(out,'camid-reveal-cinema.json'),JSON.stringify(metadata,null,2));
+  await fs.writeFile(path.join(out,filmName+'.webm'),Buffer.from(movie.data,'base64'));
+  const {data,...metadata}=movie;await fs.writeFile(path.join(out,filmName+'.json'),JSON.stringify(metadata,null,2));
   // Confirm the saved film decodes and its beginning, middle and end are seekable.
-  const video=await browser.newPage();await video.goto('http://127.0.0.1:4189/previews/camid-reveal-cinema.webm');
+  const video=await browser.newPage();await video.goto(new URL('previews/'+filmName+'.webm',previewUrl).href);
   await video.locator('video').waitFor();await video.waitForFunction(()=>document.querySelector('video').readyState>=2);
   await video.evaluate(()=>{const v=document.querySelector('video');v.pause();v.currentTime=1e6;});
   await video.waitForFunction(()=>Number.isFinite(document.querySelector('video').duration));

@@ -32,19 +32,21 @@ export function partReveal(name,family,t,layer=-1){
   return family==='Tank'?bezierProgress(t,.44,.72,curves.mechanism):bezierProgress(t,.49,.76,curves.mechanism);
 }
 // Distances refer to the CLOSED product, not the changing exploded bounds.
-// Only the final three stations use the complete assembly's framing distance.
+// The final four stations use the complete assembly's framing distance.
+// flow is the shared rail tangent in local screen-right / up / radial axes.
+// Short macro handles protect the surface pass; long crane handles draw the C arc.
 export function cinemaStations(mobile){
   return [
     {time:0,start:true,roll:-.30},
-    {time:.065,yaw:.70,pitch:-.09,distance:mobile?.29:.235,focus:1,detail:.44,x:mobile?.06:.20,y:.03,roll:-.30},
-    {time:.15,yaw:.59,pitch:-.06,distance:mobile?.28:.225,focus:1,detail:.23,x:mobile?.03:.08,y:.02,roll:-.20},
-    {time:.22,yaw:.51,pitch:-.055,distance:mobile?.31:.25,focus:1,detail:.08,x:0,y:.01,roll:-.12},
-    {time:.28,yaw:.50,pitch:-.055,distance:.52,focus:.82,detail:.08,x:0,y:.02,roll:-.08},
-    {time:.39,yaw:.06,pitch:-.005,distance:1.00,focus:.25,detail:.08,x:.06,y:.04,roll:.06},
-    {time:.50,yaw:-.38,pitch:.15,distance:1.30,open:.18,x:.09,y:.05,roll:.16},
-    {time:.64,yaw:-.72,pitch:.39,finalDistance:.77,open:.72,x:.12,y:.055,roll:mobile?.52:.26},
-    {time:.76,yaw:-.84,pitch:.44,finalDistance:.95,open:1,x:.14,y:.055,roll:mobile?.82:.27},
-    {time:.88,yaw:-.90,pitch:.39,finalDistance:.995,open:1,x:.14,y:.055,roll:mobile?.96:.24},
+    {time:.065,yaw:.87,pitch:.15,distance:mobile?.31:.255,focus:1,detail:.54,x:mobile?.06:.16,y:.16,roll:-.30,handle:.28},
+    {time:.15,yaw:.65,pitch:-.07,distance:mobile?.29:.235,focus:1,detail:.23,x:mobile?.02:.04,y:-.06,roll:-.22,flow:[.65,-1,0],handle:.34},
+    {time:.22,yaw:.52,pitch:-.23,distance:mobile?.34:.28,focus:1,detail:.02,x:-.04,y:-.18,roll:-.08,handle:.34},
+    {time:.285,yaw:.51,pitch:-.26,distance:.52,focus:.82,detail:.02,x:-.04,y:-.10,roll:.02,flow:[.30,-.24,1],handle:.40},
+    {time:.39,yaw:.05,pitch:-.22,distance:.94,focus:.30,detail:.02,x:.02,y:-.04,roll:.10,flow:[1,.20,.80],handle:.46},
+    {time:.51,yaw:-.32,pitch:.44,distance:1.38,open:.20,x:.08,y:.04,roll:.28,flow:[.45,1,.15],handle:.52},
+    {time:.64,yaw:-.64,pitch:.78,finalDistance:.82,open:.72,x:.12,y:.08,roll:mobile?.52:.36,handle:.50},
+    {time:.76,yaw:-.86,pitch:.51,finalDistance:.97,open:1,x:.14,y:.075,roll:mobile?.82:.30,handle:.42},
+    {time:.88,yaw:-.91,pitch:.42,finalDistance:1.005,open:1,x:.14,y:.055,roll:mobile?.96:.24,handle:.34},
     {time:1,yaw:-.94,pitch:.35,finalDistance:1,open:1,x:.14,y:.055,roll:mobile?1.02:.22}
   ];
 }
